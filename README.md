@@ -7,8 +7,9 @@ engineering assessment for an audit log service.
 
 The repository now contains the baseline Spring Boot project setup, approved
 architecture documentation, authenticated audit event creation, transactional
-hash-chain append, the audit-event query API, and full-chain verification.
-Retention, redaction, export, and compliance reporting remain pending.
+hash-chain append, the audit-event query API, full-chain verification, and
+configurable retention using archive markers. Redaction, export, and compliance
+reporting remain pending.
 
 ## Working Context
 

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.assessment.auditlog.entity.AuditEvent;
+import com.assessment.auditlog.entity.AuditArchiveMarker;
 import com.assessment.auditlog.service.AuditEventQuery;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.FlushModeType;
@@ -12,6 +13,7 @@ import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
 
 import org.hibernate.jpa.HibernateHints;
 import org.springframework.stereotype.Repository;
@@ -30,6 +32,11 @@ public class AuditEventQueryRepository {
         CriteriaQuery<AuditEvent> criteriaQuery = criteriaBuilder.createQuery(AuditEvent.class);
         Root<AuditEvent> event = criteriaQuery.from(AuditEvent.class);
         List<Predicate> predicates = new ArrayList<>();
+        Subquery<Long> archiveMarkerSubquery = criteriaQuery.subquery(Long.class);
+        Root<AuditArchiveMarker> archiveMarker = archiveMarkerSubquery.from(AuditArchiveMarker.class);
+        archiveMarkerSubquery.select(archiveMarker.get("auditEventId"))
+                .where(criteriaBuilder.equal(archiveMarker.get("auditEventId"), event.get("id")));
+        predicates.add(criteriaBuilder.not(criteriaBuilder.exists(archiveMarkerSubquery)));
 
         if (query.afterId() != null) {
             predicates.add(criteriaBuilder.greaterThan(event.get("id"), query.afterId()));

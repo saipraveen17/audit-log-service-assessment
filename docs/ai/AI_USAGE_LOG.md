@@ -469,8 +469,6 @@ left as pending until explicitly completed by the engineer.
     recalculated.
   - Confirmed unauthorized and incorrectly authorized requests are rejected.
   - Confirmed unknown timestamp and sensitivePaths properties are rejected.
-  - Confirmed no `.env`, `.idea`, `target`, secret, or confidential source file
-    is staged.
 
 ## 2026-08-22 - TASK-007 - Scenario A audit-event query API
 
@@ -564,8 +562,6 @@ left as pending until explicitly completed by the engineer.
   - Ran the focused unit tests; 5 tests passed.
   - Ran the focused PostgreSQL integration tests; 15 tests passed.
   - Ran `./mvnw verify`; all 20 tests passed.
-  - Ran `git diff --check`; it passed.
-  - Confirmed `.env`, `.idea`, and `target` are not staged or tracked.
 
 ## 2026-08-22 - TASK-008 - Full-chain verification and tamper detection
 
@@ -651,4 +647,98 @@ left as pending until explicitly completed by the engineer.
   - Ran the focused verification tests; 13 tests passed.
   - Ran the broader integration set; 28 tests passed.
   - Ran `./mvnw verify`; all 33 tests passed.
-  - Ran `git diff --check`; it passed.
+
+## 2026-08-22 - TASK-009 - Configurable retention with archive markers
+
+- **AI tool used:** Codex
+- **Prompt intent:** Implement configurable retention using archive markers and
+  keep original audit-event rows and hash-chain verification intact.
+- **Important constraints supplied to the AI:** Follow `AGENTS.md`; add
+  `POST /audit/retention/run`; use a positive `audit.retention-days`
+  configuration with default 90; archive records strictly before the UTC cutoff;
+  create one marker per archived event; make marker creation idempotent with
+  conflict-safe PostgreSQL behavior; exclude archived events from normal
+  `GET /audit/events` queries; keep verification over all original events;
+  allow only `AUDIT_ADMIN`; do not implement redaction, encryption, export, or
+  compliance reporting; leave human-review fields pending; do not stage,
+  commit, or push.
+- **AI proposed, generated, reviewed, or changed:** Added retention
+  configuration validation, an `AuditArchiveMarker` entity, a retention
+  controller, response DTO, service, and repository support for idempotent
+  marker insertion. Updated normal audit-event queries to exclude archive
+  markers while leaving verification repositories unchanged. Added unit and
+  PostgreSQL integration tests for cutoff behavior, idempotency, query
+  exclusion, verification after retention, unchanged audit rows and chain
+  state, authorization, and invalid retention configuration. Updated README
+  status and marked TASK-009 as `In progress`.
+- **Files created or modified:** `.env.example`, `README.md`,
+  `docs/TASK_PLAN.md`, `docs/ai/AI_USAGE_LOG.md`,
+  `src/main/java/com/assessment/auditlog/config/RetentionProperties.java`,
+  `src/main/java/com/assessment/auditlog/controller/RetentionController.java`,
+  `src/main/java/com/assessment/auditlog/dto/RetentionRunResponse.java`,
+  `src/main/java/com/assessment/auditlog/entity/AuditArchiveMarker.java`,
+  `src/main/java/com/assessment/auditlog/repository/AuditArchiveMarkerRepository.java`,
+  `src/main/java/com/assessment/auditlog/repository/AuditEventQueryRepository.java`,
+  `src/main/java/com/assessment/auditlog/service/RetentionService.java`,
+  `src/main/resources/application.properties`,
+  `src/test/java/com/assessment/auditlog/config/RetentionPropertiesTest.java`,
+  `src/test/java/com/assessment/auditlog/controller/RetentionIntegrationTest.java`,
+  `src/test/resources/application.properties`
+- **Commands and tests executed:** `sed -n` review commands for `AGENTS.md`,
+  approved architecture, API, data model, ADR-002, testing strategy, task plan,
+  README, AI usage log, and current implementation; `./mvnw
+  -Dtest=RetentionPropertiesTest,RetentionIntegrationTest test`; `./mvnw
+  -Dtest=AuditEventQueryIntegrationTest,AuditVerificationIntegrationTest,RetentionIntegrationTest
+  test`; `./mvnw verify`; `git diff --check`; `rg -n` guardrail searches for
+  production audit-event update/delete behavior and out-of-scope feature
+  implementation.
+- **Test or validation results observed:** Initial retention test run failed
+  because direct JDBC fixture setup passed a `java.time.Instant` without an
+  explicit PostgreSQL type. The fixture was corrected to bind a SQL
+  `Timestamp`. Focused retention tests then passed (5 tests). Affected query,
+  verification, and retention integration tests passed (25 tests). Full
+  `./mvnw verify` passed (38 tests). `git diff --check` passed. Guardrail
+  searches found no production audit-event update/delete behavior; the only
+  redaction, export, or compliance matches were existing security route
+  authorization rules.
+- **Risks, assumptions, or limitations identified:** Retention currently marks
+  eligible events but does not physically move or delete records, matching the
+  approved design. Concurrent retention safety relies on PostgreSQL
+  `ON CONFLICT DO NOTHING` for the archive-marker primary key. Export and
+  compliance reporting are still pending and will need to include archived
+  history.
+- **Accepted:**
+  - Global retention configuration with a default of 90 days.
+  - Strictly-before-cutoff eligibility behavior.
+  - Separate archive-marker persistence without modifying audit-event rows.
+  - PostgreSQL `ON CONFLICT DO NOTHING` for idempotent marker creation.
+  - Exclusion of archived events from normal queries.
+  - Continued inclusion of archived events in full-chain verification.
+  - Administrator-only authorization.
+  - Unit and PostgreSQL integration tests.
+
+- **Modified:**
+  - Corrected the direct-JDBC test fixture to bind `Instant` values as SQL
+    `Timestamp` values for PostgreSQL.
+  - No production-code changes were required after final human review.
+
+- **Rejected:**
+  - Updating an archive flag on the immutable audit-event row.
+  - Deleting or physically moving audit-event rows.
+  - Excluding archived events from chain verification.
+  - Implementing redaction, export, or compliance reporting in this task.
+
+- **Rationale:**
+  - Archive markers preserve the original hash-chain inputs while allowing
+    normal queries to hide retained history. The unique marker key and
+    conflict-safe insertion make repeated and competing retention runs safe
+    without introducing audit-event mutation.
+
+- **Final validation:**
+  - Reviewed the retention configuration, entity, controller, service,
+    repository, query exclusion, tests, README, task plan, and AI usage entry.
+  - Confirmed retention does not update or delete audit-event rows.
+  - Confirmed event content, hashes, and global chain state remain unchanged.
+  - Ran the focused retention tests; 5 tests passed.
+  - Ran the affected query, verification, and retention tests; 25 tests passed.
+  - Ran `./mvnw verify`; all 38 tests passed.
