@@ -347,3 +347,127 @@ left as pending until explicitly completed by the engineer.
   - Started the Spring Boot application and confirmed that it connected to
     PostgreSQL successfully.
   - Confirmed no audit-event feature implementation was added during TASK-005.
+
+## 2026-08-22 - TASK-006 - Scenario A event creation and hash-chain append
+
+- **AI tool used:** Codex
+- **Prompt intent:** Implement Scenario A audit event creation with append-only
+  PostgreSQL persistence and transactional hash-chain append.
+- **Important constraints supplied to the AI:** Follow `AGENTS.md`; implement
+  only `POST /audit/events`; do not implement querying, `/audit/verify`,
+  retention, redaction, encryption, export, or compliance reporting; assign the
+  timestamp server-side in UTC at millisecond precision through an injectable
+  `Clock`; store payload as PostgreSQL JSONB in `committedPayload`; manually
+  allocate event IDs from the locked GLOBAL chain-state row; avoid
+  `@GeneratedValue`, sequences, public entity setters, and update/delete APIs;
+  use deterministic JSON canonicalization and lowercase SHA-256 hashes; avoid
+  caller-controlled delimiter concatenation in content hashing; reject unknown
+  request fields, including caller-supplied `timestamp` and unsupported
+  `sensitivePaths`; keep payload values out of logs and error messages; leave
+  TASK-006 in progress; do not stage, commit, or push.
+- **AI proposed, generated, reviewed, or changed:** Added audit event and chain
+  state entities, request/response DTOs, controller, service, repositories,
+  chain-state initialization, deterministic JSON canonicalization, UTC
+  timestamp formatting, SHA-256 content and record hashing, manual ID
+  allocation under a pessimistic chain-state lock, and focused unit and
+  PostgreSQL integration tests for creation, linking, concurrency, validation,
+  authorization, and application context startup. Refined content hashing to
+  canonicalize one JSON object, removed runtime chain-state recreation from the
+  append path, added defensive response payload copying, rejected unknown
+  request properties, made unreadable request-body errors generic, strengthened
+  persisted hash and chain-head assertions, and updated the README status.
+  Marked TASK-006 as `In progress`.
+- **Files created or modified:** `src/main/java/com/assessment/auditlog/config/TimeConfig.java`,
+  `src/main/java/com/assessment/auditlog/controller/AuditEventController.java`,
+  `src/main/java/com/assessment/auditlog/dto/AuditEventResponse.java`,
+  `src/main/java/com/assessment/auditlog/dto/CreateAuditEventRequest.java`,
+  `src/main/java/com/assessment/auditlog/entity/AuditChainState.java`,
+  `src/main/java/com/assessment/auditlog/entity/AuditEvent.java`,
+  `src/main/java/com/assessment/auditlog/exception/ApiExceptionHandler.java`,
+  `src/main/java/com/assessment/auditlog/repository/AuditChainStateRepository.java`,
+  `src/main/java/com/assessment/auditlog/repository/AuditEventInsertRepository.java`,
+  `src/main/java/com/assessment/auditlog/repository/AuditEventRepository.java`,
+  `src/main/java/com/assessment/auditlog/service/AuditChainStateInitializer.java`,
+  `src/main/java/com/assessment/auditlog/service/AuditEventService.java`,
+  `src/main/java/com/assessment/auditlog/service/AuditHashService.java`,
+  `src/main/java/com/assessment/auditlog/service/JsonCanonicalizer.java`,
+  `src/main/java/com/assessment/auditlog/service/TimeFormats.java`,
+  `src/test/java/com/assessment/auditlog/AuditLogApplicationTests.java`,
+  `src/test/java/com/assessment/auditlog/PostgreSqlIntegrationTestSupport.java`,
+  `src/test/java/com/assessment/auditlog/controller/AuditEventControllerIntegrationTest.java`,
+  `src/test/java/com/assessment/auditlog/service/AuditHashServiceTest.java`,
+  `src/test/java/com/assessment/auditlog/service/JsonCanonicalizerTest.java`,
+  `src/main/resources/application.properties`,
+  `src/test/resources/application.properties`, `README.md`,
+  `docs/TASK_PLAN.md`, `docs/ai/AI_USAGE_LOG.md`
+- **Commands and tests executed:** `sed -n`, `rg --files`, and `git status`
+  review commands; `./mvnw -Dtest=JsonCanonicalizerTest,AuditHashServiceTest
+  test`; `./mvnw -Dtest=AuditEventControllerIntegrationTest,AuditLogApplicationTests
+  test`; `./mvnw
+  -Dtest=JsonCanonicalizerTest,AuditHashServiceTest,AuditEventControllerIntegrationTest,AuditLogApplicationTests
+  test`; `./mvnw verify`; `git diff --check`.
+- **Test or validation results observed:** Focused unit tests passed
+  (4 tests). The first focused integration run was interrupted after exposing a
+  test-fixture issue where Spring cached a datasource after a Testcontainers
+  PostgreSQL instance stopped. A second integration run failed because the
+  fixed test `Clock` was not imported into the Spring test context. After
+  adding explicit test context cleanup and importing the fixed clock, the
+  focused integration tests passed (5 tests). Full `./mvnw verify` passed
+  (9 tests). Final focused tests after the refinement passed (11 tests). Final
+  `./mvnw verify` passed (11 tests). `git diff --check` passed.
+- **Risks, assumptions, or limitations identified:** Scenario A currently
+  covers event creation and append-only hash-chain linking only. Query,
+  full-chain verification, retention, redaction, export, and compliance
+  reporting remain future tasks. The implementation serializes appends through
+  one GLOBAL chain-state row as approved; this favors correctness over write
+  throughput for the prototype.
+- **Accepted:**
+  - The authenticated `POST /audit/events` endpoint and validation flow.
+  - Server-assigned UTC timestamps through an injectable `Clock`.
+  - PostgreSQL JSONB persistence for structured event payloads.
+  - Service-assigned event IDs allocated from the locked GLOBAL chain state.
+  - Insert-only event persistence with no update or delete API.
+  - SHA-256 content, previous-record, and record hash storage.
+  - Transactional pessimistic locking for linear concurrent append behavior.
+  - Unit tests and PostgreSQL Testcontainers integration tests.
+
+- **Modified:**
+  - Replaced newline-delimited content-hash input with one canonical JSON
+    representation of all hashed event fields.
+  - Rejected unknown JSON request fields so timestamp and unsupported
+    sensitivePaths are not silently ignored.
+  - Changed missing chain-state behavior from runtime recreation to fail-closed
+    handling.
+  - Returned a defensive payload copy in the API response.
+  - Strengthened integration tests to recalculate persisted hashes and verify
+    the final chain-state head.
+  - Updated the README to reflect the implemented TASK-006 capability.
+
+- **Rejected:**
+  - Unescaped string concatenation as the canonical content-hash format because
+    different field combinations could produce the same pre-hash input.
+  - Silently accepting and ignoring unknown request properties.
+  - Recreating missing global chain state from an append request without an
+    existing row lock.
+  - Adding query, verification, retention, redaction, export, or compliance
+    behavior before their planned tasks.
+
+- **Rationale:**
+  - The final implementation keeps append behavior simple while ensuring that
+    the hash representation has unambiguous field boundaries, concurrent writes
+    form one linear chain, unsupported security-related fields fail safely, and
+    historical events have no application-level mutation path.
+
+- **Final validation:**
+  - Reviewed all TASK-006 source code, tests, task-plan changes, README status,
+    and AI traceability.
+  - Ran the focused unit and integration tests successfully.
+  - Ran `./mvnw clean verify`; all tests passed.
+  - Confirmed concurrent appends produced unique contiguous IDs and valid
+    previous-hash links.
+  - Confirmed persisted content and record hashes can be independently
+    recalculated.
+  - Confirmed unauthorized and incorrectly authorized requests are rejected.
+  - Confirmed unknown timestamp and sensitivePaths properties are rejected.
+  - Confirmed no `.env`, `.idea`, `target`, secret, or confidential source file
+    is staged.

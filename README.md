@@ -5,8 +5,10 @@ engineering assessment for an audit log service.
 
 ## Status
 
-The repository now contains the baseline Spring Boot project setup and approved
-architecture documentation. Audit-log feature implementation has not started.
+The repository now contains the baseline Spring Boot project setup, approved
+architecture documentation, authenticated audit event creation, and
+transactional hash-chain append. Querying, full-chain verification, retention,
+redaction, export, and compliance reporting remain pending.
 
 ## Working Context
 
