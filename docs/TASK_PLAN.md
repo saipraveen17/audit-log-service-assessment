@@ -14,7 +14,7 @@ values are `Pending`, `In progress`, `Done`, or `Blocked`.
 | TASK-007 | Implement Scenario A combined query filters, cursor pagination, unit tests, and integration tests. | TASK-006 | Done |
 | TASK-008 | Implement `GET /audit/verify` full-chain verification, first inconsistency reporting, direct database tamper detection tests, and supporting documentation. | TASK-006 | Done |
 | TASK-009 | Implement Scenario B retention with archive markers, including global retention configuration, idempotent marker creation, tests, and documentation. | TASK-008 | Done |
-| TASK-010 | Implement Scenario B sensitive payload encryption and redaction without breaking verification, including tests and documentation. | TASK-009 | Pending |
+| TASK-010 | Implement Scenario B sensitive payload encryption and redaction without breaking verification, including tests and documentation. | TASK-009 | Done |
 | TASK-011 | Implement Scenario B self-contained verifiable export for one `actorId` or one `resourceId`, including independent verification tests and documentation. | TASK-010 | Pending |
 | TASK-012 | Implement the approved Scenario C compliance-report scope, including authorization, filtering, integrity references, tests, and documentation. | TASK-011 | Pending |
 | TASK-013 | Perform security review and hardening across validation, authorization, sensitive data exposure, logging, errors, exports, redaction, and retention. | TASK-006, TASK-007, TASK-008, TASK-009, TASK-010, TASK-011, TASK-012 | Pending |
@@ -22,11 +22,12 @@ values are `Pending`, `In progress`, `Done`, or `Blocked`.
 
 ## Current Task Notes
 
-TASK-001 through TASK-009 are complete.
+TASK-001 through TASK-010 are complete.
 
-TASK-010 is the next active task. It implements sensitive-field encryption at
-event creation, irreversible key-removal redaction, logical payload rendering,
-and validation that redaction does not break the hash chain.
+TASK-011 is the next active task. It implements the self-contained verifiable
+export for exactly one actorId or resourceId, including archived records,
+committed encrypted payloads, chain-proof metadata, digital signing, and
+independent verification tests.
 
 ## Review Gates
 

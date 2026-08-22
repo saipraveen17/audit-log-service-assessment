@@ -43,6 +43,7 @@ class AuditEventControllerIntegrationTest extends PostgreSqlIntegrationTestSuppo
 
     @BeforeEach
     void resetDatabase() {
+        jdbcTemplate.update("delete from audit_sensitive_field_key");
         jdbcTemplate.update("delete from audit_event");
         jdbcTemplate.update(
                 """
@@ -232,7 +233,7 @@ class AuditEventControllerIntegrationTest extends PostgreSqlIntegrationTestSuppo
                                   "resourceType": "CLIENT_ACCOUNT",
                                   "resourceId": "account-501",
                                   "payload": {"purpose": "CUSTOMER_SUPPORT"},
-                                  "sensitivePaths": ["/accountNumber"]
+                                  "unsupported": true
                                 }
                                 """))
                 .andExpect(status().isBadRequest());

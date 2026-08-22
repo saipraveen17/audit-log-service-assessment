@@ -46,4 +46,14 @@ public class ApiExceptionHandler {
         problem.setTitle("Request error");
         return problem;
     }
+
+    @ExceptionHandler(SensitivePayloadAccessException.class)
+    ProblemDetail handleSensitivePayloadAccess(SensitivePayloadAccessException exception) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "Sensitive payload could not be processed.");
+        problem.setType(URI.create("about:blank"));
+        problem.setTitle("Sensitive payload error");
+        return problem;
+    }
 }

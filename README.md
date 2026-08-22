@@ -8,8 +8,8 @@ engineering assessment for an audit log service.
 The repository now contains the baseline Spring Boot project setup, approved
 architecture documentation, authenticated audit event creation, transactional
 hash-chain append, the audit-event query API, full-chain verification, and
-configurable retention using archive markers. Redaction, export, and compliance
-reporting remain pending.
+configurable retention using archive markers, plus sensitive-field encryption
+and key-removal redaction. Export and compliance reporting remain pending.
 
 ## Working Context
 
@@ -53,7 +53,8 @@ set +a
 ```
 
 Replace placeholder HTTP Basic password hashes in `.env` before running the
-application. Do not commit `.env`.
+application. Also replace `AUDIT_REDACTION_MASTER_KEY_BASE64` with a valid
+Base64-encoded 32-byte key before startup. Do not commit `.env`.
 
 Start PostgreSQL:
 

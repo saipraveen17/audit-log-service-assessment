@@ -742,3 +742,136 @@ left as pending until explicitly completed by the engineer.
   - Ran the focused retention tests; 5 tests passed.
   - Ran the affected query, verification, and retention tests; 25 tests passed.
   - Ran `./mvnw verify`; all 38 tests passed.
+
+## 2026-08-22 - TASK-010 - Sensitive-field encryption and redaction
+
+- **AI tool used:** Codex
+- **Prompt intent:** Implement creation-time sensitive payload encryption and
+  key-removal redaction without breaking hash-chain verification, then refine
+  logical payload rendering to fail closed on missing, mismatched, or incomplete
+  sensitive-key metadata.
+- **Important constraints supplied to the AI:** Follow `AGENTS.md`; add
+  optional JSON Pointer `sensitivePaths`; reject blank, duplicate, root,
+  invalid, missing, or overlapping paths; encrypt selected field values with
+  per-field AES-256-GCM keys and IVs before hashing; wrap field keys with an
+  environment-provided Base64 32-byte master key; store key metadata separately;
+  return logical plaintext values before redaction and redacted markers after
+  key removal; never alter committed audit-event payloads or hashes during
+  redaction; allow redaction only for `AUDIT_ADMIN`; do not implement export or
+  compliance reporting; leave human-review fields pending; do not stage,
+  commit, or push.
+- **AI proposed, generated, reviewed, or changed:** Added redaction master-key
+  configuration validation, sensitive-field key metadata persistence, JSON
+  Pointer validation, AES-GCM field encryption and key wrapping, logical payload
+  rendering for create/query responses, and the `POST
+  /audit/events/{id}/redactions` endpoint. Updated event creation so committed
+  encrypted payloads are hashed and persisted atomically with key metadata and
+  chain-state advancement. Added tests for valid and invalid master-key
+  configuration, sensitive path validation, encrypted-at-rest payloads, logical
+  read behavior, idempotent redaction, authorization, undeclared and unknown
+  redaction targets, verification after redaction, unchanged committed rows and
+  chain state, and tampered ciphertext or wrapped-key failure behavior. Added
+  transient byte-array zeroing for field keys and decoded master keys. Added
+  final fail-closed checks that envelope `keyId` values match persisted key
+  rows, active keys have both key columns present, legitimate redactions have
+  both key columns absent plus redaction metadata, and rendered payloads contain
+  no remaining encrypted envelopes. Updated README status and marked TASK-010
+  as `In progress`.
+- **Files created or modified:** `.env.example`, `README.md`,
+  `docs/TASK_PLAN.md`, `docs/ai/AI_USAGE_LOG.md`,
+  `src/main/java/com/assessment/auditlog/config/RedactionProperties.java`,
+  `src/main/java/com/assessment/auditlog/controller/AuditEventController.java`,
+  `src/main/java/com/assessment/auditlog/dto/CreateAuditEventRequest.java`,
+  `src/main/java/com/assessment/auditlog/dto/RedactionRequest.java`,
+  `src/main/java/com/assessment/auditlog/dto/RedactionResponse.java`,
+  `src/main/java/com/assessment/auditlog/entity/AuditSensitiveFieldKey.java`,
+  `src/main/java/com/assessment/auditlog/exception/ApiExceptionHandler.java`,
+  `src/main/java/com/assessment/auditlog/exception/SensitivePayloadAccessException.java`,
+  `src/main/java/com/assessment/auditlog/repository/AuditSensitiveFieldKeyRepository.java`,
+  `src/main/java/com/assessment/auditlog/service/AuditEventService.java`,
+  `src/main/java/com/assessment/auditlog/service/RedactionService.java`,
+  `src/main/java/com/assessment/auditlog/service/SensitivePayloadService.java`,
+  `src/main/resources/application.properties`,
+  `src/test/java/com/assessment/auditlog/config/RedactionPropertiesTest.java`,
+  `src/test/java/com/assessment/auditlog/controller/AuditEventControllerIntegrationTest.java`,
+  `src/test/java/com/assessment/auditlog/controller/AuditEventQueryIntegrationTest.java`,
+  `src/test/java/com/assessment/auditlog/controller/AuditVerificationIntegrationTest.java`,
+  `src/test/java/com/assessment/auditlog/controller/RedactionIntegrationTest.java`,
+  `src/test/java/com/assessment/auditlog/controller/RetentionIntegrationTest.java`,
+  `src/test/resources/application.properties`
+- **Commands and tests executed:** `sed -n` review commands for `AGENTS.md`,
+  approved architecture, API, data model, ADR-002, testing strategy, task plan,
+  and current implementation; `./mvnw
+  -Dtest=RedactionPropertiesTest,RedactionIntegrationTest test`; `./mvnw
+  -Dtest=AuditEventControllerIntegrationTest,AuditEventQueryIntegrationTest,AuditVerificationIntegrationTest,RetentionIntegrationTest,RedactionIntegrationTest,RedactionPropertiesTest,RetentionPropertiesTest
+  test`; `./mvnw verify`; `git diff --check`; `rg -n` guardrail searches for
+  production audit-event update/delete behavior, out-of-scope export/compliance
+  implementation, and secret/sensitive-value exposure in production source.
+- **Test or validation results observed:** Initial focused redaction test
+  compilation failed due invalid Java text-block syntax in the new test helper;
+  the helper was corrected. Focused redaction tests then passed (15 tests after
+  the final fail-closed refinement).
+  Affected creation, query, verification, retention, redaction, and
+  configuration tests passed (44 tests). Full `./mvnw verify` passed (50
+  tests before the final refinement and 53 tests after it). `git diff --check`
+  passed. Guardrail searches found no production audit-event update/delete
+  behavior; export and compliance matches were only the existing security route
+  rules; production sensitive-value matches were limited to encryption/key-
+  handling code and did not include test plaintext.
+- **Risks, assumptions, or limitations identified:** The prototype uses an
+  application-managed master key from environment configuration rather than
+  KMS/HSM-backed envelope encryption. Redaction cryptographically removes field
+  access by clearing wrapped keys, but ciphertext remains in the immutable
+  event payload by design. Backup lifecycle and master-key rotation remain
+  future hardening topics. Export and compliance reporting are still pending.
+- **Accepted:**
+  - Optional JSON Pointer sensitive-path selection during event creation.
+  - Per-field AES-256-GCM encryption using random field keys and IVs.
+  - AES-GCM wrapping of field keys using an environment-provided master key.
+  - Separate sensitive-field key metadata persistence.
+  - Hashing and storing only the committed encrypted payload.
+  - Returning logical plaintext values while field keys exist.
+  - Irreversible key-removal redaction with administrator identity and reason.
+  - Idempotent redaction and unchanged audit-event rows, hashes, and chain
+    state.
+  - Unit and PostgreSQL integration tests.
+
+- **Modified:**
+  - Added fail-closed validation for missing or inconsistent sensitive-key
+    metadata.
+  - Added verification that encrypted-envelope key IDs match persisted key
+    metadata.
+  - Prevented internal encrypted envelopes from being returned through normal
+    event APIs when key metadata is missing or corrupted.
+  - Added direct-database tampering tests for deleted, mismatched, and partially
+    cleared key metadata.
+
+- **Rejected:**
+  - Response-only masking that would leave plaintext stored in the immutable
+    event.
+  - Mutating committed payload fields during redaction.
+  - Returning field keys, wrapping keys, ciphertext metadata, or encryption
+    envelopes through normal APIs.
+  - Silently treating incomplete key metadata as legitimate redaction.
+  - Implementing export or compliance reporting during this task.
+
+- **Rationale:**
+  - Encrypting values before hashing preserves immutable chain inputs, while
+    deleting the separately stored field-key material makes approved fields
+    inaccessible. Fail-closed metadata validation prevents corrupted key state
+    from leaking internal encryption details or being misrepresented as a
+    legitimate redaction.
+
+- **Final validation:**
+  - Reviewed encryption configuration, sensitive-path validation, key
+    persistence, event creation, query rendering, redaction behavior, errors,
+    tests, README, task plan, and AI traceability.
+  - Confirmed plaintext sensitive values are not stored in audit-event payloads.
+  - Confirmed committed payloads and all hash values remain unchanged after
+    redaction.
+  - Confirmed full-chain verification remains intact before and after
+    redaction.
+  - Confirmed missing, mismatched, or incomplete key metadata fails safely.
+  - Ran the focused redaction tests successfully.
+  - Ran `./mvnw verify`; all tests passed.
+  - Ran `git diff --check`; it passed.

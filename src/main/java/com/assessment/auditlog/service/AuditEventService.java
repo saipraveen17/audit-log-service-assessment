@@ -3,6 +3,7 @@ package com.assessment.auditlog.service;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import com.assessment.auditlog.dto.AuditEventQueryItemResponse;
 import com.assessment.auditlog.dto.AuditEventQueryResponse;
@@ -13,6 +14,7 @@ import com.assessment.auditlog.entity.AuditEvent;
 import com.assessment.auditlog.repository.AuditChainStateRepository;
 import com.assessment.auditlog.repository.AuditEventInsertRepository;
 import com.assessment.auditlog.repository.AuditEventQueryRepository;
+import com.assessment.auditlog.repository.AuditSensitiveFieldKeyRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import org.springframework.http.HttpStatus;
@@ -37,23 +39,36 @@ public class AuditEventService {
 
     private final AuditEventQueryRepository auditEventQueryRepository;
 
+    private final AuditSensitiveFieldKeyRepository sensitiveFieldKeyRepository;
+
+    private final SensitivePayloadService sensitivePayloadService;
+
     public AuditEventService(
             Clock clock,
             AuditHashService auditHashService,
             AuditChainStateRepository chainStateRepository,
             AuditEventInsertRepository auditEventInsertRepository,
-            AuditEventQueryRepository auditEventQueryRepository) {
+            AuditEventQueryRepository auditEventQueryRepository,
+            AuditSensitiveFieldKeyRepository sensitiveFieldKeyRepository,
+            SensitivePayloadService sensitivePayloadService) {
         this.clock = clock;
         this.auditHashService = auditHashService;
         this.chainStateRepository = chainStateRepository;
         this.auditEventInsertRepository = auditEventInsertRepository;
         this.auditEventQueryRepository = auditEventQueryRepository;
+        this.sensitiveFieldKeyRepository = sensitiveFieldKeyRepository;
+        this.sensitivePayloadService = sensitivePayloadService;
     }
 
     @Transactional
     public AuditEventResponse create(CreateAuditEventRequest request) {
-        JsonNode committedPayload = validatePayload(request.payload());
+        JsonNode validatedPayload = validatePayload(request.payload());
         Instant timestamp = TimeFormats.truncateToMillis(clock.instant());
+        SensitivePayloadService.PreparedPayload preparedPayload = sensitivePayloadService.prepare(
+                validatedPayload,
+                request.sensitivePaths(),
+                timestamp);
+        JsonNode committedPayload = preparedPayload.committedPayload();
         String contentHash = auditHashService.contentHash(
                 request.eventType(),
                 request.actorId(),
@@ -81,8 +96,11 @@ public class AuditEventService {
                 recordHash,
                 AuditHashService.HASH_VERSION);
         auditEventInsertRepository.insert(event);
+        sensitiveFieldKeyRepository.saveAll(preparedPayload.keys().stream()
+                .map(preparedKey -> preparedKey.toEntity(id))
+                .toList());
         chainState.advanceTo(id, recordHash);
-        return toResponse(event);
+        return toResponse(event, sensitiveFieldKeyRepository.findByAuditEventId(id));
     }
 
     @Transactional(readOnly = true)
@@ -108,9 +126,14 @@ public class AuditEventService {
 
         List<AuditEvent> fetchedEvents = auditEventQueryRepository.find(query, query.limit() + 1);
         boolean hasMore = fetchedEvents.size() > query.limit();
-        List<AuditEventQueryItemResponse> items = fetchedEvents.stream()
+        List<AuditEvent> visibleEvents = fetchedEvents.stream()
                 .limit(query.limit())
-                .map(this::toQueryItemResponse)
+                .toList();
+        Map<Long, List<com.assessment.auditlog.entity.AuditSensitiveFieldKey>> keysByEventId =
+                sensitivePayloadService.groupByEventId(sensitiveFieldKeyRepository.findByAuditEventIdIn(
+                        visibleEvents.stream().map(AuditEvent::getId).toList()));
+        List<AuditEventQueryItemResponse> items = visibleEvents.stream()
+                .map(event -> toQueryItemResponse(event, keysByEventId.getOrDefault(event.getId(), List.of())))
                 .toList();
         Long nextCursor = items.isEmpty() ? null : items.getLast().id();
         return new AuditEventQueryResponse(items, nextCursor, hasMore);
@@ -183,14 +206,16 @@ public class AuditEventService {
         }
     }
 
-    private AuditEventResponse toResponse(AuditEvent event) {
+    private AuditEventResponse toResponse(
+            AuditEvent event,
+            List<com.assessment.auditlog.entity.AuditSensitiveFieldKey> sensitiveFieldKeys) {
         return new AuditEventResponse(
                 event.getId(),
                 event.getEventType(),
                 event.getActorId(),
                 event.getResourceType(),
                 event.getResourceId(),
-                event.getCommittedPayload(),
+                sensitivePayloadService.logicalPayload(event.getCommittedPayload(), sensitiveFieldKeys),
                 TimeFormats.formatUtcMillis(event.getTimestamp()),
                 event.getContentHash(),
                 event.getPreviousHash(),
@@ -199,14 +224,16 @@ public class AuditEventService {
                 false);
     }
 
-    private AuditEventQueryItemResponse toQueryItemResponse(AuditEvent event) {
+    private AuditEventQueryItemResponse toQueryItemResponse(
+            AuditEvent event,
+            List<com.assessment.auditlog.entity.AuditSensitiveFieldKey> sensitiveFieldKeys) {
         return new AuditEventQueryItemResponse(
                 event.getId(),
                 event.getEventType(),
                 event.getActorId(),
                 event.getResourceType(),
                 event.getResourceId(),
-                event.getCommittedPayload(),
+                sensitivePayloadService.logicalPayload(event.getCommittedPayload(), sensitiveFieldKeys),
                 TimeFormats.formatUtcMillis(event.getTimestamp()),
                 event.getRecordHash(),
                 false);

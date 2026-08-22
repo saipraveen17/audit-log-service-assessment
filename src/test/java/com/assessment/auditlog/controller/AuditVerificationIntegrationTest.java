@@ -44,6 +44,7 @@ class AuditVerificationIntegrationTest extends PostgreSqlIntegrationTestSupport 
 
     @BeforeEach
     void resetDatabase() {
+        jdbcTemplate.update("delete from audit_sensitive_field_key");
         jdbcTemplate.update("delete from audit_event");
         jdbcTemplate.update(
                 """
