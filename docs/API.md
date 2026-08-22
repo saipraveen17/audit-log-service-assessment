@@ -317,6 +317,10 @@ The report includes archived history and excludes raw payloads.
 
 ```json
 {
+  "from": "2026-08-22T10:00:00.000Z",
+  "to": "2026-08-22T12:00:00.000Z",
+  "snapshotLastId": 42,
+  "snapshotLastRecordHash": "hex-head",
   "items": [
     {
       "id": 1,
@@ -330,18 +334,14 @@ The report includes archived history and excludes raw payloads.
     }
   ],
   "nextCursor": 1,
-  "hasMore": false,
-  "chainSnapshot": {
-    "lastId": 42,
-    "lastRecordHash": "hex-head"
-  }
+  "hasMore": false
 }
 ```
 
 This report proves integrity of events stored by this service. It does not prove
 that every upstream application submitted every required access event.
 
-Possible status codes: `200`, `400`, `401`, `403`.
+Possible status codes: `200`, `400`, `401`, `403`, `409`.
 
 ## ProblemDetail Example
 

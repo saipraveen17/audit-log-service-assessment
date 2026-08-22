@@ -989,3 +989,97 @@ left as pending until explicitly completed by the engineer.
   - Confirmed post-export appends do not invalidate an already signed bundle.
   - Ran focused export tests; 13 tests passed.
   - Ran `./mvnw verify`; all 66 tests passed.
+
+## 2026-08-22 - TASK-012 - Client-account access compliance report
+
+- **AI tool used:** Codex
+- **Prompt intent:** Implement the approved Scenario C compliance report for
+  client-account access events stored in the audit log service.
+- **Important constraints supplied to the AI:** Follow `AGENTS.md`; implement
+  `GET /audit/compliance/client-account-access`; require `from` and `to`;
+  support optional `actorId`, `resourceId`, `eventType`, `afterId`, and
+  `limit`; return only `resourceType = CLIENT_ACCOUNT`; include archived
+  history; treat `eventType` as the access action; exclude payloads,
+  committed payloads, plaintext sensitive values, ciphertext, and redaction key
+  metadata; run from a read-only PostgreSQL `REPEATABLE_READ` snapshot; verify
+  the captured chain before returning evidence; return `409 Conflict` for a
+  broken source chain; authorize only `COMPLIANCE_REVIEWER` and `AUDIT_ADMIN`;
+  do not stage, commit, or push.
+- **AI proposed, generated, reviewed, or changed:** Added compliance report
+  response DTOs, a query model, a read-only compliance repository, a
+  compliance report service, and the compliance report controller. The service
+  validates required time bounds and pagination, captures the chain head,
+  reuses snapshot chain verification, queries only through the captured head,
+  includes archived rows, and maps only safe report metadata. Added PostgreSQL
+  integration tests covering required parameters, invalid timestamps and
+  ranges, CLIENT_ACCOUNT scoping, optional filters, human and service actors,
+  time boundaries, archived history, cursor pagination, empty results,
+  sensitive/redacted payload exclusion, broken-chain refusal, post-report
+  append behavior, and authorization. Updated README status, API documentation,
+  and TASK-012 task status.
+- **Files created or modified:** `README.md`, `docs/API.md`,
+  `docs/TASK_PLAN.md`, `docs/ai/AI_USAGE_LOG.md`,
+  `src/main/java/com/assessment/auditlog/controller/ComplianceReportController.java`,
+  `src/main/java/com/assessment/auditlog/dto/ComplianceReportItemResponse.java`,
+  `src/main/java/com/assessment/auditlog/dto/ComplianceReportResponse.java`,
+  `src/main/java/com/assessment/auditlog/repository/ComplianceReportRepository.java`,
+  `src/main/java/com/assessment/auditlog/service/ComplianceReportQuery.java`,
+  `src/main/java/com/assessment/auditlog/service/ComplianceReportService.java`,
+  `src/test/java/com/assessment/auditlog/controller/ComplianceReportIntegrationTest.java`
+- **Commands and tests executed:** `sed -n` review commands for `AGENTS.md`,
+  Scenario C, architecture, API, ADR-003, testing strategy, task plan, AI usage
+  log, and current implementation; `./mvnw
+  -Dtest=ComplianceReportIntegrationTest test`; `./mvnw verify`;
+  `git diff --check`; `rg -n` guardrail searches for production audit-event
+  update/delete behavior and disallowed payload/key-material fields in the
+  compliance response path.
+- **Test or validation results observed:** Focused Scenario C compliance report
+  tests passed (10 tests). Full `./mvnw verify` passed (76 tests).
+  `git diff --check` passed. Guardrail searches found no production
+  audit-event update/delete behavior and no payload, committed-payload,
+  ciphertext, wrapped-key, or redaction-metadata fields in the compliance
+  controller, service, or DTO response path.
+- **Risks, assumptions, or limitations identified:** The report proves
+  integrity for events stored by this service, but does not prove that every
+  upstream system submitted every access event. Regulator login, UI, scheduled
+  delivery, jurisdiction-specific formats, automated submission, and auditing
+  the report request remain out of scope.
+- **Accepted:**
+  - The authenticated client-account access compliance endpoint.
+  - Mandatory `from` and `to` bounds with optional actor, resource, event-type,
+    cursor, and limit filters.
+  - `CLIENT_ACCOUNT`-only report scoping.
+  - Inclusion of archived historical events.
+  - Snapshot-based chain validation before returning compliance evidence.
+  - Metadata-only responses without payload or redaction-key material.
+  - Cursor pagination and time-boundary behavior.
+  - Compliance-reviewer and administrator authorization.
+  - PostgreSQL integration-test coverage.
+
+- **Modified:**
+  - No material implementation changes were required after final human review.
+
+- **Rejected:**
+  - Returning raw or committed payloads in compliance responses.
+  - Treating the report as proof that every upstream access event was captured.
+  - Regulator login, UI, scheduled delivery, jurisdiction-specific formats,
+    or automated regulator submission.
+  - Implementing unrelated features during Scenario C.
+
+- **Rationale:**
+  - The implementation provides a bounded compliance-review capability tied to
+    the tamper-evident audit history while keeping sensitive event details out
+    of the response. It proves integrity of stored evidence without making a
+    stronger completeness claim about upstream systems.
+
+- **Final validation:**
+  - Reviewed the compliance controller, service, repository, DTOs, tests, API
+    documentation, task plan, and AI usage entry.
+  - Confirmed only CLIENT_ACCOUNT records are returned.
+  - Confirmed archived history is included.
+  - Confirmed payload, committed payload, ciphertext, and key metadata are not
+    exposed through the response path.
+  - Confirmed a broken source chain returns 409.
+  - Ran focused compliance tests; 10 tests passed.
+  - Ran `./mvnw verify`; all 76 tests passed.
+  - Ran `git diff --check`; it passed.

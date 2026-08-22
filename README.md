@@ -9,8 +9,9 @@ The repository now contains the baseline Spring Boot project setup, approved
 architecture documentation, authenticated audit event creation, transactional
 hash-chain append, the audit-event query API, full-chain verification, and
 configurable retention using archive markers, plus sensitive-field encryption
-and key-removal redaction, plus self-contained signed audit export. Compliance
-reporting remains pending.
+and key-removal redaction, self-contained signed audit export, and the
+client-account access compliance report. Security review and final validation
+remain pending.
 
 ## Working Context
 
