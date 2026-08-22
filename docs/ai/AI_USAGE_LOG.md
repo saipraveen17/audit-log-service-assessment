@@ -158,3 +158,90 @@ left as pending until explicitly completed by the engineer.
     Docker files, or architecture decisions were introduced during TASK-002.
   - Confirmed that TASK-002 and the human-review gate TASK-003 are marked
     `Done`.
+
+## 2026-08-22 - TASK-004 - Architecture documentation
+
+- **AI tools used:** Codex for repository-aware documentation changes; ChatGPT
+  for design review, alternatives, trade-off analysis, and prompt preparation.
+- **Prompt intent:** Convert the approved requirements into an implementation-ready
+  architecture before creating application code or configuration.
+- **Important constraints supplied to the AI:** Documentation only; keep one
+  Spring Boot service and a standard layered MVC structure; use PostgreSQL and
+  Hibernate without Flyway; use a server-assigned UTC timestamp, service-assigned
+  BIGINT chain ID, cursor pagination, a global SHA-256 chain, archive-marker
+  retention, cryptographic redaction, signed export, HTTP Basic roles, and a
+  bounded Scenario C report; do not stage, commit, or push.
+- **AI proposed, generated, reviewed, or changed:** Created the architecture,
+  API contract, data model, testing strategy, and three ADRs. Iterative review
+  clarified manual ID allocation under the chain-state lock, snapshot
+  verification, logical archival, creation-time sensitive-field encryption,
+  idempotent key-removal redaction, export proof contents, role authorization,
+  Scenario C limits, and production alternatives.
+- **Files created or modified:** `docs/ARCHITECTURE.md`, `docs/API.md`,
+  `docs/DATA_MODEL.md`, `docs/TESTING_STRATEGY.md`,
+  `docs/adr/ADR-001-hash-chain-and-concurrency.md`,
+  `docs/adr/ADR-002-retention-and-redaction.md`,
+  `docs/adr/ADR-003-export-security-and-compliance.md`, `docs/TASK_PLAN.md`,
+  and `docs/ai/AI_USAGE_LOG.md`.
+- **Commands and tests executed:** Repository and document inspection commands,
+  `git status --short`, consistency searches, and `git diff --check`.
+- **Test or validation results observed:** No application tests were applicable
+  because TASK-004 changed documentation only. The final documentation passed
+  `git diff --check`.
+- **Risks, assumptions, or limitations identified:** A global row lock serializes
+  appends; Hibernate schema generation is prototype-only; redaction depends on
+  creation-time classification and secure key lifecycle; full proof headers can
+  make exports large; HTTP Basic requires TLS; and the Scenario C report proves
+  integrity of stored events rather than completeness of upstream capture.
+- **Accepted:**
+  - One layered Spring Boot service under `com.assessment.auditlog`.
+  - Server-assigned UTC ingestion timestamps.
+  - One service-assigned BIGINT ID for identity, ordering, verification, and
+    cursor pagination.
+  - PostgreSQL JSONB for structured payloads.
+  - A global SHA-256 chain with content, previous, and record hashes.
+  - Transactional chain-state locking and snapshot verification.
+  - Archive-marker retention without mutating audit-event rows.
+  - AES-GCM field encryption with key-removal redaction.
+  - Ed25519-signed self-contained exports.
+  - Stateless HTTP Basic role authorization for the prototype.
+  - The bounded internal Scenario C compliance-report API.
+  - Unit tests and critical PostgreSQL integration tests.
+- **Modified:**
+  - Replaced separate UUID and sequence identifiers with one service-assigned
+    BIGINT ID.
+  - Clarified that the ID is allocated under the chain-state lock rather than
+    by a database sequence.
+  - Selected cursor pagination using `afterId` and `limit`.
+  - Selected one server-assigned timestamp and documented its ingestion-time
+    semantics.
+  - Added snapshot behavior so concurrent appends do not cause false verification
+    failures.
+  - Reduced retention to one concrete archive-marker design.
+  - Made redaction observable through a logical payload before redaction and a
+    redacted marker after key removal.
+  - Defined exact export proof contents and offline verification steps.
+  - Added administrator access to approved operational and compliance routes.
+- **Rejected:**
+  - Client-controlled timestamps for the prototype.
+  - Page/size or offset pagination for the append-only log.
+  - Database-generated chain positions.
+  - Updating, moving, or deleting original audit-event rows for retention.
+  - Response-only masking as the redaction mechanism.
+  - Unsigned or checksum-only export bundles.
+  - Holding the append lock during the complete verification scan.
+  - Adding a path-version prefix that would replace the explicitly required
+    `/audit/verify` route.
+- **Rationale:** The selected design prioritizes correctness, implementation
+  speed, understandable failure behavior, and live explainability. High-scale
+  and stronger-security alternatives are documented without adding infrastructure
+  that is unnecessary for the prototype.
+- **Final validation:**
+  - Reviewed all TASK-004 architecture, API, data-model, testing, and ADR files.
+  - Confirmed consistency of ID allocation, timestamps, hash inputs,
+    transaction boundaries, verification snapshots, retention, redaction,
+    export proof, authorization, and Scenario C scope.
+  - Confirmed no Java code, Maven configuration, application configuration,
+    Docker files, or database schema files were added during TASK-004.
+  - Confirmed only the new architecture artifacts, task status, and AI log are
+    part of this task's change set.
