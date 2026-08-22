@@ -2,7 +2,9 @@ package com.assessment.auditlog;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -21,7 +23,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @SpringBootTest
 @AutoConfigureMockMvc
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
-@Import(PostgreSqlIntegrationTestSupport.FixedClockConfiguration.class)
+@Import(PostgreSqlIntegrationTestSupport.AdjustableClockConfiguration.class)
 public abstract class PostgreSqlIntegrationTestSupport {
 
     public static final Instant FIXED_INSTANT = Instant.parse("2026-08-22T10:15:30.123456Z");
@@ -45,12 +47,48 @@ public abstract class PostgreSqlIntegrationTestSupport {
     }
 
     @TestConfiguration
-    static class FixedClockConfiguration {
+    static class AdjustableClockConfiguration {
 
         @Bean
         @Primary
-        Clock testClock() {
-            return Clock.fixed(FIXED_INSTANT, ZoneOffset.UTC);
+        AdjustableClock testClock() {
+            return new AdjustableClock(FIXED_INSTANT);
+        }
+    }
+
+    public static final class AdjustableClock extends Clock {
+
+        private final AtomicReference<Instant> instant;
+
+        private final ZoneId zone;
+
+        private AdjustableClock(Instant initialInstant) {
+            this(initialInstant, ZoneOffset.UTC);
+        }
+
+        private AdjustableClock(Instant initialInstant, ZoneId zone) {
+            this.instant = new AtomicReference<>(initialInstant);
+            this.zone = zone;
+        }
+
+        public void setInstant(Instant instant) {
+            this.instant.set(instant);
+        }
+
+        @Override
+        public ZoneId getZone() {
+            return zone;
+        }
+
+        @Override
+        public Clock withZone(ZoneId zone) {
+            AdjustableClock clock = new AdjustableClock(instant(), zone);
+            return clock;
+        }
+
+        @Override
+        public Instant instant() {
+            return instant.get();
         }
     }
 }

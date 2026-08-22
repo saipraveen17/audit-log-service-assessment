@@ -6,12 +6,18 @@ import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 @Entity
-@Table(name = "audit_event")
+@Table(name = "audit_event", indexes = {
+        @Index(name = "idx_audit_event_actor_id", columnList = "actor_id, id"),
+        @Index(name = "idx_audit_event_resource", columnList = "resource_type, resource_id, id"),
+        @Index(name = "idx_audit_event_event_type", columnList = "event_type, id"),
+        @Index(name = "idx_audit_event_timestamp", columnList = "timestamp, id")
+})
 public class AuditEvent {
 
     @Id

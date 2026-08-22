@@ -2,14 +2,17 @@ package com.assessment.auditlog.controller;
 
 import java.net.URI;
 
+import com.assessment.auditlog.dto.AuditEventQueryResponse;
 import com.assessment.auditlog.dto.AuditEventResponse;
 import com.assessment.auditlog.dto.CreateAuditEventRequest;
 import com.assessment.auditlog.service.AuditEventService;
 import jakarta.validation.Valid;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -27,5 +30,18 @@ public class AuditEventController {
         return ResponseEntity
                 .created(URI.create("/audit/events/" + response.id()))
                 .body(response);
+    }
+
+    @GetMapping("/audit/events")
+    AuditEventQueryResponse query(
+            @RequestParam(required = false) String actorId,
+            @RequestParam(required = false) String resourceType,
+            @RequestParam(required = false) String resourceId,
+            @RequestParam(required = false) String eventType,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to,
+            @RequestParam(required = false) String afterId,
+            @RequestParam(required = false) String limit) {
+        return auditEventService.query(actorId, resourceType, resourceId, eventType, from, to, afterId, limit);
     }
 }

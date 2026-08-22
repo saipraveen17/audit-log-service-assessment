@@ -471,3 +471,98 @@ left as pending until explicitly completed by the engineer.
   - Confirmed unknown timestamp and sensitivePaths properties are rejected.
   - Confirmed no `.env`, `.idea`, `target`, secret, or confidential source file
     is staged.
+
+## 2026-08-22 - TASK-007 - Scenario A audit-event query API
+
+- **AI tool used:** Codex
+- **Prompt intent:** Implement `GET /audit/events` with combined filters and
+  cursor pagination for non-archived audit events.
+- **Important constraints supplied to the AI:** Follow `AGENTS.md`; implement
+  only the query API; support optional `actorId`, `resourceType`, `resourceId`,
+  `eventType`, `from`, and `to` filters in any combination; support exclusive
+  `afterId` and bounded `limit`; order by `id ASC`; fetch `limit + 1` records
+  for `hasMore`; do not add page/size pagination, total counts, GET-by-ID,
+  verification, retention, redaction, export, or compliance reporting; keep the
+  audit-event repository write-free; create test data through the normal append
+  flow; leave human-review fields pending; do not stage, commit, or push.
+- **AI proposed, generated, reviewed, or changed:** Added query response DTOs,
+  a read-only Criteria-based query repository, service-level query parameter
+  parsing and validation, `GET /audit/events` controller support, documented
+  query indexes on the audit-event entity, an adjustable PostgreSQL integration
+  test clock, and integration tests covering filters, combined filters,
+  inclusive/exclusive time bounds, cursor pagination, empty results, limits,
+  invalid query parameters, and authorization. Updated README status and marked
+  TASK-007 as `In progress`.
+- **Files created or modified:** `README.md`, `docs/TASK_PLAN.md`,
+  `docs/ai/AI_USAGE_LOG.md`,
+  `src/main/java/com/assessment/auditlog/controller/AuditEventController.java`,
+  `src/main/java/com/assessment/auditlog/dto/AuditEventQueryItemResponse.java`,
+  `src/main/java/com/assessment/auditlog/dto/AuditEventQueryResponse.java`,
+  `src/main/java/com/assessment/auditlog/entity/AuditEvent.java`,
+  `src/main/java/com/assessment/auditlog/repository/AuditEventQueryRepository.java`,
+  `src/main/java/com/assessment/auditlog/service/AuditEventQuery.java`,
+  `src/main/java/com/assessment/auditlog/service/AuditEventService.java`,
+  `src/main/java/com/assessment/auditlog/service/TimeFormats.java`,
+  `src/test/java/com/assessment/auditlog/PostgreSqlIntegrationTestSupport.java`,
+  `src/test/java/com/assessment/auditlog/controller/AuditEventQueryIntegrationTest.java`
+- **Commands and tests executed:** `sed -n` review commands for `AGENTS.md`,
+  architecture, API, data model, task plan, README, AI log, and current
+  implementation files; `./mvnw -Dtest=JsonCanonicalizerTest,AuditHashServiceTest
+  test`; `./mvnw
+  -Dtest=AuditEventControllerIntegrationTest,AuditEventQueryIntegrationTest,AuditLogApplicationTests
+  test`; `./mvnw verify`; `git diff --check`; `rg -n` guardrail searches.
+- **Test or validation results observed:** Focused unit tests passed (5 tests).
+  Focused PostgreSQL integration tests passed (15 tests). Full `./mvnw verify`
+  passed (20 tests). `git diff --check` passed. Guardrail searches found no
+  audit-event `@GeneratedValue`, sequence generation, update/delete endpoint
+  mappings, or write-capable `save` method added to the audit-event repository.
+- **Risks, assumptions, or limitations identified:** Query responses currently
+  report all returned records as `archived=false` because retention and archive
+  markers are intentionally deferred. Full-chain verification, retention,
+  redaction, export, and compliance reporting remain future tasks.
+- **Accepted:**
+  - The authenticated `GET /audit/events` endpoint.
+  - Combined filtering by actor, resource type, resource ID, event type, and
+    time range.
+  - Cursor pagination using exclusive `afterId`, bounded `limit`, and ascending
+    event ID order.
+  - The read-only Criteria-based query repository.
+  - Fetching `limit + 1` rows instead of running a total-count query.
+  - Defensive payload copying in query responses.
+  - Inclusive `from` and exclusive `to` time-boundary behavior.
+  - Query indexes and PostgreSQL integration coverage.
+  - Reader and administrator authorization with 401 and 403 validation.
+
+- **Modified:**
+  - No material implementation changes were required after final human review.
+  - The temporary `archived=false` response behavior was retained and clearly
+    documented because retention markers are intentionally deferred to
+    TASK-009.
+
+- **Rejected:**
+  - Page-and-size and offset pagination.
+  - Total-page and total-record count queries.
+  - A general write-capable repository for historical audit events.
+  - A GET-by-ID endpoint outside the required query scope.
+  - Implementing verification, retention, redaction, export, or compliance
+    behavior during the query task.
+
+- **Rationale:**
+  - Cursor pagination uses the existing immutable, increasing event ID and
+    remains stable while new events are appended. The Criteria query supports
+    all required filter combinations without exposing mutation operations or
+    constructing SQL from user-controlled values.
+
+- **Final validation:**
+  - Reviewed the controller, service, query DTOs, Criteria repository, entity
+    indexes, test infrastructure, README, task plan, and AI usage entry.
+  - Confirmed the existing audit-event repository still exposes no save,
+    update, or delete operation.
+  - Confirmed all query results are ordered by ID ascending.
+  - Confirmed filter, time-boundary, pagination, validation, and authorization
+    integration tests are present.
+  - Ran the focused unit tests; 5 tests passed.
+  - Ran the focused PostgreSQL integration tests; 15 tests passed.
+  - Ran `./mvnw verify`; all 20 tests passed.
+  - Ran `git diff --check`; it passed.
+  - Confirmed `.env`, `.idea`, and `target` are not staged or tracked.
