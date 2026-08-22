@@ -566,3 +566,89 @@ left as pending until explicitly completed by the engineer.
   - Ran `./mvnw verify`; all 20 tests passed.
   - Ran `git diff --check`; it passed.
   - Confirmed `.env`, `.idea`, and `target` are not staged or tracked.
+
+## 2026-08-22 - TASK-008 - Full-chain verification and tamper detection
+
+- **AI tool used:** Codex
+- **Prompt intent:** Implement `GET /audit/verify` full-chain verification with
+  first-inconsistency reporting and direct database tamper-detection tests.
+- **Important constraints supplied to the AI:** Follow `AGENTS.md`; return HTTP
+  200 for intact and broken chains; use the documented verification response
+  shape; run verification in one read-only PostgreSQL `REPEATABLE_READ`
+  transaction; read the GLOBAL chain state without taking the append lock; stop
+  at the first inconsistency; never return payload contents in verification
+  responses or errors; detect ID gaps, unsupported hash versions, content hash
+  mismatches, previous hash mismatches, record hash mismatches, and chain-head
+  mismatches; use direct SQL tampering in tests; do not implement retention,
+  redaction, export, or compliance reporting; leave human-review fields
+  pending; do not stage, commit, or push.
+- **AI proposed, generated, reviewed, or changed:** Added a dedicated
+  verification controller, response DTO, violation enum, and verification
+  service. The service captures the chain head, scans audit events in ID order,
+  recalculates content and record hashes, checks continuity and previous-hash
+  linkage, detects stale or inconsistent chain heads, and reports the first
+  inconsistency without returning payloads. Added PostgreSQL integration tests
+  for empty chain, intact chains, direct actor/payload tampering,
+  previous-hash tampering, record-hash tampering, unsupported hash version,
+  deleted middle and final records, corrupted chain head, event beyond the
+  captured chain-state last ID, earliest-inconsistency precedence, HTTP 200
+  broken-chain responses, and verifier/admin authorization. Updated README
+  status and marked TASK-008 as `In progress`.
+- **Files created or modified:** `README.md`, `docs/TASK_PLAN.md`,
+  `docs/ai/AI_USAGE_LOG.md`,
+  `src/main/java/com/assessment/auditlog/controller/AuditVerificationController.java`,
+  `src/main/java/com/assessment/auditlog/dto/AuditVerificationResponse.java`,
+  `src/main/java/com/assessment/auditlog/service/AuditVerificationService.java`,
+  `src/main/java/com/assessment/auditlog/service/AuditVerificationViolationType.java`,
+  `src/test/java/com/assessment/auditlog/controller/AuditVerificationIntegrationTest.java`
+- **Commands and tests executed:** `sed -n` review commands for `AGENTS.md`,
+  architecture, API, ADR-001, testing strategy, task plan, and current Scenario
+  A implementation; `./mvnw -Dtest=AuditVerificationIntegrationTest test`;
+  `./mvnw
+  -Dtest=AuditEventControllerIntegrationTest,AuditEventQueryIntegrationTest,AuditVerificationIntegrationTest,AuditLogApplicationTests
+  test`; `./mvnw verify`; `git diff --check`; `rg -n` guardrail searches.
+- **Test or validation results observed:** Focused verification integration
+  tests passed (13 tests). Broader focused PostgreSQL integration tests passed
+  (28 tests). Full `./mvnw verify` passed (33 tests). `git diff --check`
+  passed. Guardrail searches confirmed verification does not use the
+  pessimistic append-lock method and does not expose payload fields in its DTO
+  or controller.
+- **Risks, assumptions, or limitations identified:** Verification is a full
+  linear scan and is intentionally O(n) for the prototype. It detects database
+  tampering against stored hashes and chain state, but without an external
+  signed checkpoint a database administrator who rewrites every record and the
+  chain state consistently remains outside the current trust boundary.
+  Retention, redaction, export, and compliance reporting remain future tasks.
+- **Accepted:**
+  - Snapshot-based full-chain verification in a read-only PostgreSQL
+    `REPEATABLE_READ` transaction.
+  - Verification without acquiring the append lock.
+  - Ordered validation of ID continuity, hash version, content hash,
+    previous-hash linkage, record hash, and chain head.
+  - First-inconsistency reporting and HTTP 200 responses for broken chains.
+  - Direct-SQL tampering tests and verifier/admin authorization.
+
+- **Modified:**
+  - No material code changes were required after final human review.
+
+- **Rejected:**
+  - Repairing or modifying corrupted records during verification.
+  - Returning payload contents in verification responses.
+  - Holding the append lock during the complete scan.
+  - Continuing after the first inconsistency.
+  - Implementing Scenario B or C behavior in this task.
+
+- **Rationale:**
+  - The implementation validates a stable database snapshot without blocking
+    concurrent appends for the duration of the scan. It reports the earliest
+    detectable failure while preserving sensitive-data boundaries.
+
+- **Final validation:**
+  - Reviewed the verification controller, DTO, service, violation enum, tests,
+    README, task plan, and AI usage entry.
+  - Confirmed verification does not call the pessimistic append-lock method.
+  - Confirmed verification responses do not expose payload fields.
+  - Ran the focused verification tests; 13 tests passed.
+  - Ran the broader integration set; 28 tests passed.
+  - Ran `./mvnw verify`; all 33 tests passed.
+  - Ran `git diff --check`; it passed.

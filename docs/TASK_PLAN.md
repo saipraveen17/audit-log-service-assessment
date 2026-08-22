@@ -12,7 +12,7 @@ values are `Pending`, `In progress`, `Done`, or `Blocked`.
 | TASK-005 | Create runnable project setup with Spring Boot, Maven Wrapper, PostgreSQL local dependency, baseline API authentication and authorization, and documented local commands. | TASK-004 | Done |
 | TASK-006 | Implement Scenario A event creation with hash-chain append, append-only persistence, unit tests, and integration tests. | TASK-005 | Done |
 | TASK-007 | Implement Scenario A combined query filters, cursor pagination, unit tests, and integration tests. | TASK-006 | Done |
-| TASK-008 | Implement `GET /audit/verify` full-chain verification, first inconsistency reporting, direct database tamper detection tests, and supporting documentation. | TASK-006 | Pending |
+| TASK-008 | Implement `GET /audit/verify` full-chain verification, first inconsistency reporting, direct database tamper detection tests, and supporting documentation. | TASK-006 | In progress |
 | TASK-009 | Implement Scenario B retention with archive markers, including global retention configuration, idempotent marker creation, tests, and documentation. | TASK-008 | Pending |
 | TASK-010 | Implement Scenario B sensitive payload encryption and redaction without breaking verification, including tests and documentation. | TASK-009 | Pending |
 | TASK-011 | Implement Scenario B self-contained verifiable export for one `actorId` or one `resourceId`, including independent verification tests and documentation. | TASK-010 | Pending |
@@ -22,11 +22,12 @@ values are `Pending`, `In progress`, `Done`, or `Blocked`.
 
 ## Current Task Notes
 
-TASK-001 through TASK-007 are complete.
+TASK-001 through TASK-008 are complete.
 
-TASK-008 is the next active task. It implements `GET /audit/verify`,
-snapshot-based full-chain verification, first-inconsistency reporting, direct
-database tamper-detection tests, and supporting documentation.
+TASK-009 is the next active task. It implements configurable retention using
+archive markers, idempotent retention execution, normal-query exclusion of
+archived events, and validation that retention does not break chain
+verification.
 
 ## Review Gates
 
