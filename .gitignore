@@ -5,6 +5,7 @@ target/
 *.war
 *.ear
 *.nar
+*.pdf
 
 # Maven Wrapper runtime files
 .mvn/wrapper/maven-wrapper.jar
@@ -32,6 +33,20 @@ application-local.yml
 application-local.yaml
 application-*.local.yml
 application-*.local.yaml
+secrets/
+secret/
+private/
+keys/
+certs/
+certificates/
+*.key
+*.pem
+*.crt
+*.cer
+*.p12
+*.pfx
+*.jks
+*.keystore
 
 # Test and coverage output
 coverage/

@@ -245,3 +245,105 @@ left as pending until explicitly completed by the engineer.
     Docker files, or database schema files were added during TASK-004.
   - Confirmed only the new architecture artifacts, task status, and AI log are
     part of this task's change set.
+
+## 2026-08-22 - TASK-005 - Runnable Spring Boot project setup
+
+- **AI tool used:** Codex
+- **Prompt intent:** Create the runnable Spring Boot project setup without
+  implementing audit events, hash-chain, query, verification, retention,
+  redaction, export, or compliance features.
+- **Important constraints supplied to the AI:** Follow `AGENTS.md`; use Java 21,
+  Spring Boot, Maven Wrapper, Spring Web, Validation, Spring Data JPA, Spring
+  Security, PostgreSQL, Spring Boot Test, Spring Security Test, and
+  Testcontainers PostgreSQL; create the approved layered package structure under
+  `com.assessment.auditlog`; use environment-backed HTTP Basic prototype users
+  and roles; keep credentials out of committed source files; configure
+  PostgreSQL from environment variables with safe local defaults; use
+  `ddl-auto=update` locally and `create-drop` for tests; disable Open Session in
+  View, CSRF, and SQL parameter logging; do not add audit entities or feature
+  endpoints; do not add Flyway, Liquibase, Lombok, H2, Kafka, Redis, or other
+  services; do not stage, commit, or push.
+- **AI proposed, generated, reviewed, or changed:** Created the Maven project,
+  self-bootstrapping Maven Wrapper, Spring Boot application entry point,
+  approved package structure, environment-backed security properties and
+  stateless HTTP Basic security configuration, ProblemDetail exception
+  foundation, local and test application configuration, PostgreSQL Compose file,
+  `.env.example`, one application context test, README setup instructions, and
+  `.gitignore` additions for confidential and secret material. Marked TASK-005
+  as `In progress`.
+- **Files created or modified:** `pom.xml`, `mvnw`, `mvnw.cmd`,
+  `.mvn/wrapper/maven-wrapper.properties`, `src/main/java/**`,
+  `src/main/resources/application.properties`, `src/test/java/**`,
+  `../../src/test/resources/application.properties`, `compose.yml`, `.env.example`,
+  `.gitignore`, `README.md`, `docs/TASK_PLAN.md`,
+  `docs/ai/AI_USAGE_LOG.md`
+- **Commands and tests executed:** `sed -n` review commands for `AGENTS.md` and
+  TASK-004 architecture documents; `find` repository inspection commands;
+  `mvn -version` which failed because Maven is not globally installed;
+  `java -version`; `mkdir -p`; `chmod +x mvnw`; `./mvnw test`;
+  `./mvnw verify`; `docker compose config`; `rg -n` consistency checks;
+  `git diff --check`; `git status --short --ignored`
+- **Test or validation results observed:** `./mvnw test` passed with one context
+  test. `./mvnw verify` passed and built the Spring Boot jar. `docker compose
+  config` passed. `git diff --check` passed. Maven is not globally installed,
+  so the Maven Wrapper performed dependency resolution. Test output included
+  Mockito/Byte Buddy dynamic-agent warnings from the test stack, with no test
+  failures.
+- **Risks, assumptions, or limitations identified:** The context test excludes
+  datasource and JPA auto-configuration because TASK-005 has no audit entities
+  or persistence flows yet; Testcontainers PostgreSQL is present for later
+  integration tests. The Maven Wrapper is self-bootstrapping in this assessment
+  environment. Prototype HTTP Basic users are configured only through
+  environment variables; no runnable credentials are committed. No audit
+  feature behavior has been implemented.
+- **Accepted:**
+  - The Java 21 Spring Boot Maven scaffold and Maven Wrapper.
+  - Spring Web, Validation, JPA, Security, PostgreSQL, and test dependencies.
+  - Docker Compose PostgreSQL setup.
+  - Environment-backed HTTP Basic users and endpoint role authorization.
+  - The stateless Spring Security configuration.
+  - The ProblemDetail exception-handling foundation.
+  - The application context smoke test.
+  - The README local startup instructions and `.env.example`.
+
+- **Modified:**
+  - Replaced YAML configuration with `application.properties` because it
+    matches the engineer's normal Spring Boot workflow.
+  - Removed empty `package-info.java` placeholder files because they provided
+    no package documentation or annotations.
+  - Kept one default runtime configuration instead of introducing local,
+    development, or Docker profiles.
+  - Replaced the unused named test-profile configuration with test-classpath
+    `application.properties`.
+  - Disabled Hibernate SQL logging explicitly.
+  - Corrected README instructions so `.env` values are exported before starting
+    the Spring Boot process.
+  - Clarified that Maven was unavailable only inside the Codex execution
+    environment, while the Maven Wrapper completed the build.
+
+- **Rejected:**
+  - Empty package placeholder files used only to force folders into Git.
+  - YAML configuration for this implementation.
+  - Additional named Spring profiles before a real environment-specific need
+    exists.
+  - Hardcoded runnable usernames or passwords in committed configuration.
+  - Treating the scaffold context test as sufficient database integration
+    coverage.
+
+- **Rationale:**
+  - The final scaffold uses the engineer's familiar configuration format and
+    keeps runtime configuration simple. Packages will be created when real
+    feature classes are introduced. Environment-backed credentials preserve
+    repository safety, while PostgreSQL and Testcontainers dependencies prepare
+    the service for the required persistence integration tests without
+    prematurely implementing scenario behavior.
+
+- **Final validation:**
+  - Reviewed all TASK-005 source, configuration, security, Docker Compose,
+    README, and build files.
+  - Ran `./mvnw clean verify`; it passed.
+  - Ran `docker compose config`; it passed.
+  - Started PostgreSQL through Docker Compose.
+  - Started the Spring Boot application and confirmed that it connected to
+    PostgreSQL successfully.
+  - Confirmed no audit-event feature implementation was added during TASK-005.

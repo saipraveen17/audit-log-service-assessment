@@ -9,8 +9,7 @@ values are `Pending`, `In progress`, `Done`, or `Blocked`.
 | TASK-002 | Document and refine normalized requirements, task plan, and Scenario C scope. | TASK-001 | Done |
 | TASK-003 | Human review of requirements, Scenario C scope, and acceptance criteria. | TASK-002 | Done |
 | TASK-004 | Design the complete system before implementation, including API/schema definitions, persistence model, hash-chain canonicalization, retention, redaction, export verification, Scenario C scope, security boundaries, and ADRs. | TASK-003 | Done |
-| TASK-005 | Create runnable project setup with Spring Boot, Maven Wrapper, PostgreSQL local dependency, baseline API authentication and authorization, and documented local commands. | TASK-004 | Pending |
-| TASK-006 | Implement Scenario A event creation with hash-chain append, append-only persistence, unit tests, and integration tests. | TASK-005 | Pending |
+| TASK-005 | Create runnable project setup with Spring Boot, Maven Wrapper, PostgreSQL local dependency, baseline API authentication and authorization, and documented local commands. | TASK-004 | Done || TASK-006 | Implement Scenario A event creation with hash-chain append, append-only persistence, unit tests, and integration tests. | TASK-005 | Pending |
 | TASK-007 | Implement Scenario A combined query filters, cursor pagination, unit tests, and integration tests. | TASK-006 | Pending |
 | TASK-008 | Implement `GET /audit/verify` full-chain verification, first inconsistency reporting, direct database tamper detection tests, and supporting documentation. | TASK-006 | Pending |
 | TASK-009 | Implement Scenario B retention with archive markers, including global retention configuration, idempotent marker creation, tests, and documentation. | TASK-008 | Pending |
@@ -22,14 +21,11 @@ values are `Pending`, `In progress`, `Done`, or `Blocked`.
 
 ## Current Task Notes
 
-TASK-001 through TASK-004 are complete.
+TASK-001 through TASK-005 are complete.
 
-TASK-005 is the next active task. It creates and validates the runnable Spring
-Boot project, Maven Wrapper, PostgreSQL local dependency, Hibernate
-configuration, baseline HTTP Basic authentication and authorization, package
-structure, Docker Compose setup, and local startup instructions.
-
-No scenario feature is considered implemented during TASK-005.
+TASK-006 is the next active task. It implements Scenario A event creation,
+append-only persistence, deterministic hashing, transactional hash-chain append,
+and the related unit and PostgreSQL integration tests.
 
 ## Review Gates
 

@@ -5,9 +5,8 @@ engineering assessment for an audit log service.
 
 ## Status
 
-Initial repository structure is being prepared. System requirements,
-architecture decisions, and implementation tasks will be documented before
-application code is added.
+The repository now contains the baseline Spring Boot project setup and approved
+architecture documentation. Audit-log feature implementation has not started.
 
 ## Working Context
 
@@ -36,8 +35,45 @@ Unless later approved architecture decisions change it, the service will use:
 
 ## Local Development
 
-Build, test, and run commands will be added after the project skeleton is
-created.
+Prerequisites:
+
+- Java 21
+- Docker with Docker Compose
+
+Create local environment values from the example file:
+
+```bash
+cp .env.example .env
+set -a
+source .env
+set +a
+```
+
+Replace placeholder HTTP Basic password hashes in `.env` before running the
+application. Do not commit `.env`.
+
+Start PostgreSQL:
+
+```bash
+docker compose up -d postgres
+```
+
+Run tests:
+
+```bash
+./mvnw test
+./mvnw verify
+```
+
+Run the application:
+
+```bash
+./mvnw spring-boot:run
+```
+
+The application uses PostgreSQL settings from environment variables with safe
+local defaults. Open Session in View is disabled, timestamps are stored in UTC,
+and SQL parameter logging is disabled.
 
 ## AI Assistance
 
