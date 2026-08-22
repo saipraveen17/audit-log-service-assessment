@@ -291,7 +291,7 @@ Supplying neither selector or both selectors returns `400 Bad Request`.
 Exports include archived matching records. Selected records contain committed
 encrypted payloads, never deleted plaintext.
 
-Possible status codes: `200`, `400`, `401`, `403`.
+Possible status codes: `200`, `400`, `401`, `403`, `409`.
 
 ## GET /audit/compliance/client-account-access
 

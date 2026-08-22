@@ -9,7 +9,8 @@ The repository now contains the baseline Spring Boot project setup, approved
 architecture documentation, authenticated audit event creation, transactional
 hash-chain append, the audit-event query API, full-chain verification, and
 configurable retention using archive markers, plus sensitive-field encryption
-and key-removal redaction. Export and compliance reporting remain pending.
+and key-removal redaction, plus self-contained signed audit export. Compliance
+reporting remains pending.
 
 ## Working Context
 
@@ -54,7 +55,20 @@ set +a
 
 Replace placeholder HTTP Basic password hashes in `.env` before running the
 application. Also replace `AUDIT_REDACTION_MASTER_KEY_BASE64` with a valid
-Base64-encoded 32-byte key before startup. Do not commit `.env`.
+Base64-encoded 32-byte key, set `AUDIT_EXPORT_SIGNING_KEY_ID`, and set
+`AUDIT_EXPORT_PRIVATE_KEY_BASE64` to Base64 PKCS#8 Ed25519 private-key material
+before startup. Do not commit `.env`.
+
+One way to create a local synthetic export signing key is:
+
+```bash
+openssl genpkey -algorithm ED25519 -out /tmp/audit-export-ed25519-private.pem
+openssl pkcs8 -topk8 -nocrypt -in /tmp/audit-export-ed25519-private.pem -outform DER | base64 -w0
+openssl pkey -in /tmp/audit-export-ed25519-private.pem -pubout -outform DER | base64 -w0
+```
+
+Use the private-key output for the application and distribute the public-key
+output through a trusted channel to offline verifiers.
 
 Start PostgreSQL:
 

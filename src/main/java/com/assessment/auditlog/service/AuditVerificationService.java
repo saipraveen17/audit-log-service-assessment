@@ -38,6 +38,13 @@ public class AuditVerificationService {
         String snapshotLastRecordHash = snapshot.getLastRecordHash();
 
         List<AuditEvent> events = auditEventRepository.findAllByOrderByIdAsc();
+        return verifySnapshot(snapshotLastId, snapshotLastRecordHash, events);
+    }
+
+    public AuditVerificationResponse verifySnapshot(
+            long snapshotLastId,
+            String snapshotLastRecordHash,
+            List<AuditEvent> events) {
         long expectedId = 1;
         long verifiedRecordCount = 0;
         String expectedPreviousHash = AuditHashService.GENESIS_HASH;

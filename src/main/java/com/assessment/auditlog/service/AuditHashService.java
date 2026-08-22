@@ -50,16 +50,23 @@ public class AuditHashService {
     }
 
     public static String sha256Hex(String value) {
+        return toLowerHex(sha256(value.getBytes(StandardCharsets.UTF_8)));
+    }
+
+    public static byte[] sha256(String value) {
+        return sha256(value.getBytes(StandardCharsets.UTF_8));
+    }
+
+    public static byte[] sha256(byte[] value) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] bytes = digest.digest(value.getBytes(StandardCharsets.UTF_8));
-            return toLowerHex(bytes);
+            return digest.digest(value);
         } catch (NoSuchAlgorithmException exception) {
             throw new IllegalStateException("SHA-256 is not available", exception);
         }
     }
 
-    private static String toLowerHex(byte[] bytes) {
+    public static String toLowerHex(byte[] bytes) {
         StringBuilder builder = new StringBuilder(bytes.length * 2);
         for (byte value : bytes) {
             builder.append(Character.forDigit((value >> 4) & 0xF, 16));

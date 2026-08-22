@@ -874,4 +874,118 @@ left as pending until explicitly completed by the engineer.
   - Confirmed missing, mismatched, or incomplete key metadata fails safely.
   - Ran the focused redaction tests successfully.
   - Ran `./mvnw verify`; all tests passed.
-  - Ran `git diff --check`; it passed.
+
+## 2026-08-22 - TASK-011 - Self-contained verifiable export
+
+- **AI tool used:** Codex
+- **Prompt intent:** Implement the approved self-contained, independently
+  verifiable audit export for exactly one `actorId` or one `resourceId`.
+- **Important constraints supplied to the AI:** Follow `AGENTS.md`; implement
+  `GET /audit/exports`; accept exactly one nonblank selector; run export in a
+  read-only PostgreSQL `REPEATABLE_READ` transaction; capture the chain head;
+  read events only through the captured head; validate the captured source
+  chain before signing; include archived matching events; export committed
+  encrypted payloads, never decrypted logical payloads or key material; include
+  chain proof headers from ID 1 through the captured head; sign the bundle
+  digest with Ed25519 using environment-backed PKCS#8 private-key
+  configuration; add a reusable independent verifier; do not implement
+  Scenario C reporting; do not stage, commit, or push.
+- **AI proposed, generated, reviewed, or changed:** Added export signing-key
+  configuration validation, immutable export DTOs, read-only export repository
+  methods, export creation service, export controller, digest/signature
+  service, and independent verifier. Refactored chain verification minimally so
+  export validation reuses the same snapshot verification rules. Added
+  integration tests for actor and resource selectors, selector validation,
+  archived records, committed ciphertext for sensitive and redacted records,
+  empty matching exports, independent verifier success and tamper failures,
+  broken source-chain refusal, post-export append behavior, authorization, and
+  private-key configuration validation. Updated README status and signing-key
+  instructions, `.env.example`, API status-code documentation, and TASK-011
+  task status.
+- **Files created or modified:** `.env.example`, `README.md`, `docs/API.md`,
+  `docs/TASK_PLAN.md`, `docs/ai/AI_USAGE_LOG.md`,
+  `src/main/java/com/assessment/auditlog/config/ExportProperties.java`,
+  `src/main/java/com/assessment/auditlog/controller/AuditExportController.java`,
+  `src/main/java/com/assessment/auditlog/dto/AuditExportBundle.java`,
+  `src/main/java/com/assessment/auditlog/dto/AuditExportManifest.java`,
+  `src/main/java/com/assessment/auditlog/dto/AuditExportProofHeader.java`,
+  `src/main/java/com/assessment/auditlog/dto/AuditExportSelectedRecord.java`,
+  `src/main/java/com/assessment/auditlog/dto/UnsignedAuditExportBundle.java`,
+  `src/main/java/com/assessment/auditlog/repository/AuditExportRepository.java`,
+  `src/main/java/com/assessment/auditlog/repository/SelectedEventRow.java`,
+  `src/main/java/com/assessment/auditlog/service/AuditExportCryptoService.java`,
+  `src/main/java/com/assessment/auditlog/service/AuditExportService.java`,
+  `src/main/java/com/assessment/auditlog/service/AuditExportVerifier.java`,
+  `src/main/java/com/assessment/auditlog/service/AuditHashService.java`,
+  `src/main/java/com/assessment/auditlog/service/AuditVerificationService.java`,
+  `src/main/resources/application.properties`,
+  `src/test/java/com/assessment/auditlog/config/ExportPropertiesTest.java`,
+  `src/test/java/com/assessment/auditlog/controller/AuditExportIntegrationTest.java`,
+  `src/test/resources/application.properties`
+- **Commands and tests executed:** `sed -n` review commands for `AGENTS.md`,
+  approved architecture, API, data model, ADR-003, testing strategy, task plan,
+  AI usage log, README, and current implementation; `openssl genpkey`,
+  `openssl pkcs8`, and `openssl pkey` to create synthetic Ed25519 test
+  key material; `./mvnw -Dtest=ExportPropertiesTest,AuditExportIntegrationTest
+  test`; `./mvnw verify`; `git diff --check`; `rg -n` guardrail searches for
+  production audit-event update/delete behavior and out-of-scope Scenario C
+  implementation.
+- **Test or validation results observed:** Focused export tests passed (13
+  tests). Full `./mvnw verify` passed (66 tests). `git diff --check` passed.
+  Guardrail searches found no production audit-event update/delete behavior;
+  the only Scenario C match was the existing security route authorization rule.
+- **Risks, assumptions, or limitations identified:** Export proof headers are
+  complete from genesis through the captured head, which is simple and
+  independently verifiable but can grow large. The trusted public key is
+  intentionally distributed outside the bundle. Export refuses a broken source
+  chain with `409 Conflict`. Scenario C reporting remains pending.
+- **Accepted:**
+  - The authenticated `GET /audit/exports` endpoint for exactly one `actorId`
+    or `resourceId`.
+  - Export creation in a read-only PostgreSQL `REPEATABLE_READ` transaction.
+  - Verification of the captured source chain before signing.
+  - Inclusion of archived matching records.
+  - Export of committed encrypted payloads rather than logical decrypted
+    payloads.
+  - Complete chain-proof headers from genesis through the captured chain head.
+  - SHA-256 bundle digest and Ed25519 digital signature.
+  - Environment-backed PKCS#8 signing-key configuration.
+  - Independent verification using a trusted public key supplied outside the
+    bundle.
+  - Tamper-detection and authorization integration tests.
+
+- **Modified:**
+  - Reused the existing chain-verification rules for export validation instead
+    of implementing a separate integrity algorithm.
+  - Added `409 Conflict` when export is requested from an already broken source
+    chain.
+  - Added local Ed25519 key-generation instructions to the README.
+  - Corrected the accidental local Maven Wrapper executable-bit change before
+    commit.
+
+- **Rejected:**
+  - Exporting decrypted sensitive values or redaction key material.
+  - Signing an export without first validating the source chain.
+  - Trusting a public key solely because it is contained inside the same
+    bundle.
+  - Checksum-only exports without a digital signature.
+  - Implementing Scenario C reporting as part of this task.
+
+- **Rationale:**
+  - The bundle signs a stable database snapshot and contains the selected
+    immutable records plus enough global chain metadata to validate their
+    relationship to the captured chain head. A trusted public key is kept
+    outside the bundle so modification of both the evidence and an embedded key
+    cannot establish false trust.
+
+- **Final validation:**
+  - Reviewed export configuration, controller, repository, DTOs, signing
+    service, independent verifier, verification reuse, tests, README, API
+    documentation, task plan, and AI usage entry.
+  - Confirmed archived matching records are included.
+  - Confirmed committed encrypted payloads are exported without plaintext or
+    field-key material.
+  - Confirmed exports are refused when the source chain is broken.
+  - Confirmed post-export appends do not invalidate an already signed bundle.
+  - Ran focused export tests; 13 tests passed.
+  - Ran `./mvnw verify`; all 66 tests passed.
