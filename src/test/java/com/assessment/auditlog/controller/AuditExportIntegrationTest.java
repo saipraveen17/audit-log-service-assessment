@@ -130,6 +130,11 @@ class AuditExportIntegrationTest extends PostgreSqlIntegrationTestSupport {
                         .with(user("reviewer").roles("COMPLIANCE_REVIEWER"))
                         .param("actorId", " "))
                 .andExpect(status().isBadRequest());
+
+        mockMvc.perform(get("/audit/exports")
+                        .with(user("reviewer").roles("COMPLIANCE_REVIEWER"))
+                        .param("actorId", "a".repeat(256)))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

@@ -7,6 +7,12 @@
 - The server assigns `timestamp`; create requests do not accept it.
 - `from` is inclusive and `to` is exclusive.
 - Errors use Spring `ProblemDetail`.
+- Problem details are intentionally generic and do not echo invalid input,
+  payload values, exception causes, SQL, ciphertext, key IDs, IVs, credentials,
+  or key material.
+- Text identifiers and selectors are limited to 255 characters. `sensitivePaths`
+  and redaction path lists are limited to 25 JSON Pointer paths, each no longer
+  than 255 characters.
 - Raw sensitive values, credentials, encryption keys, and signing keys must not
   appear in error responses or logs.
 
@@ -350,7 +356,7 @@ Possible status codes: `200`, `400`, `401`, `403`, `409`.
   "type": "about:blank",
   "title": "Invalid request",
   "status": 400,
-  "detail": "limit must be between 1 and 200",
+  "detail": "Request could not be processed.",
   "instance": "/audit/events"
 }
 ```

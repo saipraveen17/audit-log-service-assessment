@@ -74,9 +74,9 @@ public class ComplianceReportService {
         ComplianceReportQuery query = new ComplianceReportQuery(
                 parsedFrom,
                 parsedTo,
-                requireNonBlankIfPresent(actorId, "actorId"),
-                requireNonBlankIfPresent(resourceId, "resourceId"),
-                requireNonBlankIfPresent(eventType, "eventType"),
+                InputLimits.requireNonBlankIfPresent(actorId, "actorId"),
+                InputLimits.requireNonBlankIfPresent(resourceId, "resourceId"),
+                InputLimits.requireNonBlankIfPresent(eventType, "eventType"),
                 parseAfterId(afterId),
                 parseLimit(limit),
                 snapshotLastId);
@@ -112,29 +112,20 @@ public class ComplianceReportService {
                 row.archived());
     }
 
-    private String requireNonBlankIfPresent(String value, String fieldName) {
-        if (value == null) {
-            return null;
-        }
-        if (value.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, fieldName + " must not be blank");
-        }
-        return value;
-    }
-
     private Instant parseRequiredTimestamp(String value, String fieldName) {
-        if (value == null || value.isBlank()) {
+        if (value == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, fieldName + " is required");
         }
+        String validated = InputLimits.requireNonBlank(value, fieldName);
         try {
-            return TimeFormats.parseInstant(value);
+            return TimeFormats.parseInstant(validated);
         } catch (IllegalArgumentException exception) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, fieldName + " must be a valid timestamp", exception);
         }
     }
 
     private Long parseAfterId(String value) {
-        String validated = requireNonBlankIfPresent(value, "afterId");
+        String validated = InputLimits.requireNonBlankIfPresent(value, "afterId");
         if (validated == null) {
             return null;
         }
@@ -150,7 +141,7 @@ public class ComplianceReportService {
     }
 
     private int parseLimit(String value) {
-        String validated = requireNonBlankIfPresent(value, "limit");
+        String validated = InputLimits.requireNonBlankIfPresent(value, "limit");
         if (validated == null) {
             return DEFAULT_LIMIT;
         }

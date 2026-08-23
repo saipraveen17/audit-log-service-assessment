@@ -5,96 +5,189 @@ engineering assessment for an audit log service.
 
 ## Status
 
-The repository now contains the baseline Spring Boot project setup, approved
-architecture documentation, authenticated audit event creation, transactional
-hash-chain append, the audit-event query API, full-chain verification, and
-configurable retention using archive markers, plus sensitive-field encryption
-and key-removal redaction, self-contained signed audit export, and the
-client-account access compliance report. Security review and final validation
-remain pending.
+The service implements all three assessment scenarios, including append-only
+audit events, tamper-evident hash-chain verification, retention, structured
+redaction, verifiable export, and client-account access compliance reporting.
+
+Security review is complete. Final manual validation and submission
+documentation remain pending.
 
 ## Working Context
 
 Repository work is governed by:
 
-- `AGENTS.md` for permanent engineering, security, Git, and AI usage rules.
-- `docs/REQUIREMENTS.md` for normalized requirements when available.
-- `docs/ARCHITECTURE.md` and `docs/adr/` for approved design decisions when
-  available.
-- `docs/TASK_PLAN.md` for implementation sequencing when available.
+* `AGENTS.md` for permanent engineering, security, Git, and AI usage rules.
+* `docs/REQUIREMENTS.md` for normalized requirements.
+* `docs/ARCHITECTURE.md` and `docs/adr/` for approved design decisions.
+* `docs/TASK_PLAN.md` for implementation sequencing.
 
-If those documents are missing, work should stay limited to the active task
-prompt and should not invent requirements or design decisions.
+Detailed API behavior, data model, testing strategy, trade-offs, and AI
+traceability are available under `docs/`.
 
 ## Approved Technical Direction
 
-Unless later approved architecture decisions change it, the service will use:
+The service uses:
 
-- Java 21
-- Spring Boot
-- Maven with Maven Wrapper
-- Spring Data JPA and Hibernate
-- PostgreSQL
-- JUnit 5 and Mockito
-- Docker Compose for local dependencies and execution
+* Java 21
+* Spring Boot
+* Maven with Maven Wrapper
+* Spring Data JPA and Hibernate
+* PostgreSQL
+* JUnit 5 and Mockito
+* Testcontainers
+* Docker Compose for local dependencies and execution
 
 ## Local Development
 
 Prerequisites:
 
-- Java 21
-- Docker with Docker Compose
+* Java 21
+* Docker with Docker Compose
+* OpenSSL
 
 Create local environment values from the example file:
 
 ```bash
 cp .env.example .env
-set -a
-source .env
-set +a
 ```
 
-Replace placeholder HTTP Basic password hashes in `.env` before running the
-application. Also replace `AUDIT_REDACTION_MASTER_KEY_BASE64` with a valid
-Base64-encoded 32-byte key, set `AUDIT_EXPORT_SIGNING_KEY_ID`, and set
-`AUDIT_EXPORT_PRIVATE_KEY_BASE64` to Base64 PKCS#8 Ed25519 private-key material
-before startup. Do not commit `.env`.
+`.env` is used only for local configuration and is ignored by Git. Do not commit
+it.
 
-One way to create a local synthetic export signing key is:
+For local development, the application automatically reads `.env` from the
+repository root. Real environment variables take precedence over `.env` values.
+
+### Local Authentication
+
+Replace the HTTP Basic password placeholders in `.env`.
+
+For disposable local testing, a password may use Spring Security's `{noop}`
+encoder:
+
+```text
+AUDIT_SECURITY_USERS_0_PASSWORD={noop}AuditTest123!
+```
+
+The corresponding plaintext password used in Postman or `curl` is:
+
+```text
+AuditTest123!
+```
+
+`{noop}` is intended only for local testing. Deployed environments should use
+strong password encoding and TLS.
+
+### Redaction Master Key
+
+Generate a synthetic 32-byte AES master key:
 
 ```bash
-openssl genpkey -algorithm ED25519 -out /tmp/audit-export-ed25519-private.pem
-openssl pkcs8 -topk8 -nocrypt -in /tmp/audit-export-ed25519-private.pem -outform DER | base64 -w0
-openssl pkey -in /tmp/audit-export-ed25519-private.pem -pubout -outform DER | base64 -w0
+openssl rand -base64 32 | tr -d '\n'
 ```
 
-Use the private-key output for the application and distribute the public-key
-output through a trusted channel to offline verifiers.
+Set the output in `.env`:
 
-Start PostgreSQL:
+```text
+AUDIT_REDACTION_MASTER_KEY_BASE64=<generated-value>
+```
+
+The application fails startup if the configured redaction key is missing,
+invalid Base64, or does not decode to exactly 32 bytes.
+
+### Export Signing Key
+
+Generate a local Ed25519 private key:
+
+```bash
+openssl genpkey -algorithm ED25519 \
+  -out /tmp/audit-export-ed25519-private.pem
+```
+
+Convert it to Base64 PKCS#8 DER:
+
+```bash
+openssl pkcs8 \
+  -topk8 \
+  -nocrypt \
+  -in /tmp/audit-export-ed25519-private.pem \
+  -outform DER \
+  | base64 -w0
+```
+
+Set the output in `.env`:
+
+```text
+AUDIT_EXPORT_SIGNING_KEY_ID=local-validation-key-1
+AUDIT_EXPORT_PRIVATE_KEY_BASE64=<generated-private-key>
+```
+
+To obtain the corresponding public key for independent verification:
+
+```bash
+openssl pkey \
+  -in /tmp/audit-export-ed25519-private.pem \
+  -pubout \
+  -outform DER \
+  | base64 -w0
+```
+
+The private key must not be committed. The public key should be distributed to
+offline verifiers through a trusted channel.
+
+## Start PostgreSQL
 
 ```bash
 docker compose up -d postgres
 ```
 
-Run tests:
+Check the container:
+
+```bash
+docker compose ps
+```
+
+## Run Tests
 
 ```bash
 ./mvnw test
 ./mvnw verify
 ```
 
-Run the application:
+## Run the Application
 
 ```bash
 ./mvnw spring-boot:run
 ```
 
+The service runs at:
+
+```text
+http://localhost:8080
+```
+
+The same local `.env` configuration can be used when running
+`AuditLogApplication` directly from IntelliJ, provided the working directory is
+the repository root.
+
+No Spring profile is required.
+
 The application uses PostgreSQL settings from environment variables with safe
-local defaults. Open Session in View is disabled, timestamps are stored in UTC,
-and SQL parameter logging is disabled.
+local defaults. Local database credentials are development-only and must be
+replaced for deployed environments.
+
+Open Session in View is disabled, timestamps are stored in UTC, and SQL
+parameter logging is disabled.
+
+API errors use generic `ProblemDetail` responses and do not echo payload values,
+credentials, key material, ciphertext, or internal exception details.
+
+HTTP Basic authentication must be used behind TLS/HTTPS in a production
+deployment.
 
 ## AI Assistance
 
-Material AI-assisted work is recorded in `docs/ai/AI_USAGE_LOG.md`. Human review
-and final validation remain pending until explicitly completed by the engineer.
+Material AI-assisted work is recorded in `docs/ai/AI_USAGE_LOG.md`.
+
+The engineer remains responsible for requirement interpretation, architecture
+approval, code review, testing, Git commits, production-readiness decisions, and
+final submission validation.

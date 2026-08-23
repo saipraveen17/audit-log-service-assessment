@@ -187,6 +187,10 @@ class AuditEventQueryIntegrationTest extends PostgreSqlIntegrationTestSupport {
         assertBadQuery("resourceType", " ");
         assertBadQuery("resourceId", " ");
         assertBadQuery("eventType", " ");
+        assertBadQuery("actorId", "a".repeat(256));
+        assertBadQuery("resourceType", "a".repeat(256));
+        assertBadQuery("resourceId", "a".repeat(256));
+        assertBadQuery("eventType", "a".repeat(256));
     }
 
     @Test

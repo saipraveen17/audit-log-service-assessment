@@ -129,6 +129,11 @@ public class SensitivePayloadService {
         if (paths.isEmpty()) {
             return List.of();
         }
+        if (paths.size() > InputLimits.MAX_SENSITIVE_PATHS) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "JSON Pointer paths must contain at most " + InputLimits.MAX_SENSITIVE_PATHS + " paths");
+        }
         List<ValidatedPointer> pointers = new ArrayList<>();
         HashSet<String> seen = new HashSet<>();
         for (String path : paths) {
@@ -149,6 +154,7 @@ public class SensitivePayloadService {
         if (path == null || path.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "JSON Pointer path must not be blank");
         }
+        InputLimits.requireMaxLength(path, "JSON Pointer path");
         if (!path.startsWith("/")) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "JSON Pointer path must start with /");
         }

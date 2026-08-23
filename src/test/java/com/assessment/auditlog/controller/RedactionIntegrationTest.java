@@ -112,6 +112,50 @@ class RedactionIntegrationTest extends PostgreSqlIntegrationTestSupport {
         assertBadCreate("""
                 "sensitivePaths": ["/bad~2path"]
                 """);
+        assertBadCreate("""
+                "sensitivePaths": ["/%s"]
+                """.formatted("a".repeat(256)));
+        assertBadCreate("""
+                "sensitivePaths": [%s]
+                """.formatted(quotedPaths(26)));
+    }
+
+    @Test
+    void rejectsOverlongRedactionInputs() throws Exception {
+        long eventId = createSensitiveEvent();
+
+        mockMvc.perform(post("/audit/events/{id}/redactions", eventId)
+                        .with(user("admin").roles("AUDIT_ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "paths": ["/accountNumber"],
+                                  "reason": "%s"
+                                }
+                                """.formatted("a".repeat(256))))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(post("/audit/events/{id}/redactions", eventId)
+                        .with(user("admin").roles("AUDIT_ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "paths": ["/%s"],
+                                  "reason": "DATA_PRIVACY_REQUEST"
+                                }
+                                """.formatted("a".repeat(256))))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(post("/audit/events/{id}/redactions", eventId)
+                        .with(user("admin").roles("AUDIT_ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "paths": [%s],
+                                  "reason": "DATA_PRIVACY_REQUEST"
+                                }
+                                """.formatted(quotedPaths(26))))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -366,6 +410,12 @@ class RedactionIntegrationTest extends PostgreSqlIntegrationTestSupport {
                 "\"iv\"",
                 "_encrypted",
                 "AES-256-GCM");
+    }
+
+    private String quotedPaths(int count) {
+        return java.util.stream.IntStream.range(0, count)
+                .mapToObj(index -> "\"/field%d\"".formatted(index))
+                .collect(java.util.stream.Collectors.joining(","));
     }
 
     private String storedPayload(long eventId) {

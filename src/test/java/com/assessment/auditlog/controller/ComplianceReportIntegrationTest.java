@@ -86,6 +86,21 @@ class ComplianceReportIntegrationTest extends PostgreSqlIntegrationTestSupport {
         mockMvc.perform(reportRequest().param("actorId", " "))
                 .andExpect(status().isBadRequest());
 
+        mockMvc.perform(reportRequest().param("actorId", "a".repeat(256)))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(reportRequest().param("resourceId", "a".repeat(256)))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(reportRequest().param("eventType", "a".repeat(256)))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(emptyReportRequest()
+                        .with(user("reviewer").roles("COMPLIANCE_REVIEWER"))
+                        .param("from", "a".repeat(256))
+                        .param("to", TO))
+                .andExpect(status().isBadRequest());
+
         mockMvc.perform(reportRequest().param("afterId", "-1"))
                 .andExpect(status().isBadRequest());
 

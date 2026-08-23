@@ -122,10 +122,7 @@ public class AuditExportService {
     }
 
     private String requireNonBlank(String value) {
-        if (value.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Export selector must not be blank");
-        }
-        return value;
+        return InputLimits.requireNonBlank(value, "Export selector");
     }
 
     private AuditExportSelectedRecord toSelectedRecord(SelectedEventRow row) {

@@ -25,7 +25,7 @@ public class AuditSensitiveFieldKey {
     @Column(name = "audit_event_id", nullable = false, updatable = false)
     private Long auditEventId;
 
-    @Column(name = "json_pointer", nullable = false, updatable = false)
+    @Column(name = "json_pointer", nullable = false, updatable = false, length = 255)
     private String jsonPointer;
 
     @Column(name = "wrapped_key")
@@ -40,10 +40,10 @@ public class AuditSensitiveFieldKey {
     @Column(name = "redacted_at")
     private Instant redactedAt;
 
-    @Column(name = "redaction_reason")
+    @Column(name = "redaction_reason", length = 255)
     private String redactionReason;
 
-    @Column(name = "redacted_by")
+    @Column(name = "redacted_by", length = 255)
     private String redactedBy;
 
     protected AuditSensitiveFieldKey() {

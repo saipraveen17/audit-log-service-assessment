@@ -114,10 +114,10 @@ public class AuditEventService {
             String afterId,
             String limit) {
         AuditEventQuery query = new AuditEventQuery(
-                requireNonBlankIfPresent(actorId, "actorId"),
-                requireNonBlankIfPresent(resourceType, "resourceType"),
-                requireNonBlankIfPresent(resourceId, "resourceId"),
-                requireNonBlankIfPresent(eventType, "eventType"),
+                InputLimits.requireNonBlankIfPresent(actorId, "actorId"),
+                InputLimits.requireNonBlankIfPresent(resourceType, "resourceType"),
+                InputLimits.requireNonBlankIfPresent(resourceId, "resourceId"),
+                InputLimits.requireNonBlankIfPresent(eventType, "eventType"),
                 parseOptionalTimestamp(from, "from"),
                 parseOptionalTimestamp(to, "to"),
                 parseAfterId(afterId),
@@ -146,18 +146,8 @@ public class AuditEventService {
         return payload.deepCopy();
     }
 
-    private String requireNonBlankIfPresent(String value, String fieldName) {
-        if (value == null) {
-            return null;
-        }
-        if (value.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, fieldName + " must not be blank");
-        }
-        return value;
-    }
-
     private Instant parseOptionalTimestamp(String value, String fieldName) {
-        String validated = requireNonBlankIfPresent(value, fieldName);
+        String validated = InputLimits.requireNonBlankIfPresent(value, fieldName);
         if (validated == null) {
             return null;
         }
@@ -169,7 +159,7 @@ public class AuditEventService {
     }
 
     private Long parseAfterId(String value) {
-        String validated = requireNonBlankIfPresent(value, "afterId");
+        String validated = InputLimits.requireNonBlankIfPresent(value, "afterId");
         if (validated == null) {
             return null;
         }
@@ -185,7 +175,7 @@ public class AuditEventService {
     }
 
     private int parseLimit(String value) {
-        String validated = requireNonBlankIfPresent(value, "limit");
+        String validated = InputLimits.requireNonBlankIfPresent(value, "limit");
         if (validated == null) {
             return DEFAULT_QUERY_LIMIT;
         }

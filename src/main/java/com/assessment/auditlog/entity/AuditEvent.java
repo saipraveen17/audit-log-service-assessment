@@ -24,16 +24,16 @@ public class AuditEvent {
     @Column(name = "id", nullable = false, updatable = false)
     private Long id;
 
-    @Column(name = "event_type", nullable = false, updatable = false)
+    @Column(name = "event_type", nullable = false, updatable = false, length = 255)
     private String eventType;
 
-    @Column(name = "actor_id", nullable = false, updatable = false)
+    @Column(name = "actor_id", nullable = false, updatable = false, length = 255)
     private String actorId;
 
-    @Column(name = "resource_type", nullable = false, updatable = false)
+    @Column(name = "resource_type", nullable = false, updatable = false, length = 255)
     private String resourceType;
 
-    @Column(name = "resource_id", nullable = false, updatable = false)
+    @Column(name = "resource_id", nullable = false, updatable = false, length = 255)
     private String resourceId;
 
     @JdbcTypeCode(SqlTypes.JSON)

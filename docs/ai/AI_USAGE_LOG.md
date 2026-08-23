@@ -1082,4 +1082,150 @@ left as pending until explicitly completed by the engineer.
   - Confirmed a broken source chain returns 409.
   - Ran focused compliance tests; 10 tests passed.
   - Ran `./mvnw verify`; all 76 tests passed.
-  - Ran `git diff --check`; it passed.
+
+## 2026-08-22 - TASK-013 - Security and production-readiness review
+
+- **AI tool used:** Codex
+- **Prompt intent:** Review the completed audit log service for security and
+  production-readiness risks, list concrete findings, and safely fix
+  high-confidence issues without changing the approved architecture or feature
+  designs.
+- **Important constraints supplied to the AI:** Follow `AGENTS.md`; verify
+  endpoint authorization against the documented role matrix; validate
+  environment-backed HTTP Basic users at startup; add sensible length and count
+  limits aligned with database columns; keep sensitive values, key material,
+  payloads, SQL, and exception internals out of API errors; do not add
+  dependencies or scanners; do not stage, commit, or push.
+- **AI proposed, generated, reviewed, or changed:** Reviewed authentication,
+  authorization, input validation, sensitive-data handling, cryptography,
+  persistence, snapshot behavior, configuration hygiene, and error handling.
+  Findings were: Medium - configured HTTP Basic users were not startup
+  validated for blank values, duplicates, empty roles, or unsupported roles;
+  Medium - request and selector lengths were not bounded despite 255-character
+  database columns; Low - sensitive path lists lacked count and path-length
+  abuse limits; Low - README/API needed clearer TLS, development credential,
+  generic error, and payload-size-hardening notes. Added central input limits,
+  startup validation for configured HTTP Basic users, bounded DTO/query/export
+  and compliance selectors, bounded redaction inputs, a generic safe 500
+  ProblemDetail handler, focused tests, and documentation updates. In follow-up
+  refinement, kept an untracked repository-root `.env` loader for local
+  IntelliJ and Maven execution, removed the short-lived Spring local profile
+  and ephemeral-key fallback approach, and restored fail-closed redaction and
+  export key requirements.
+- **Files created or modified:** `README.md`, `docs/API.md`,
+  `docs/TASK_PLAN.md`, `docs/ai/AI_USAGE_LOG.md`,
+  `src/main/java/com/assessment/auditlog/entity/AuditEvent.java`,
+  `src/main/java/com/assessment/auditlog/entity/AuditSensitiveFieldKey.java`,
+  `src/main/java/com/assessment/auditlog/exception/ApiExceptionHandler.java`,
+  `src/main/java/com/assessment/auditlog/security/AuditSecurityProperties.java`,
+  `src/main/java/com/assessment/auditlog/service/AuditEventService.java`,
+  `src/main/java/com/assessment/auditlog/service/AuditExportService.java`,
+  `src/main/java/com/assessment/auditlog/service/ComplianceReportService.java`,
+  `src/main/java/com/assessment/auditlog/config/DotenvEnvironmentPostProcessor.java`,
+  `src/main/java/com/assessment/auditlog/service/InputLimits.java`,
+  `src/main/java/com/assessment/auditlog/service/SensitivePayloadService.java`,
+  `src/main/java/com/assessment/auditlog/dto/CreateAuditEventRequest.java`,
+  `src/main/java/com/assessment/auditlog/dto/RedactionRequest.java`,
+  `src/main/resources/META-INF/spring/org.springframework.boot.env.EnvironmentPostProcessor`,
+  `src/main/resources/META-INF/spring.factories`,
+  `src/test/java/com/assessment/auditlog/config/DotenvEnvironmentPostProcessorTest.java`,
+  `src/test/java/com/assessment/auditlog/security/AuditSecurityPropertiesTest.java`,
+  `src/test/java/com/assessment/auditlog/controller/AuditEventControllerIntegrationTest.java`,
+  `src/test/java/com/assessment/auditlog/controller/AuditEventQueryIntegrationTest.java`,
+  `src/test/java/com/assessment/auditlog/controller/AuditExportIntegrationTest.java`,
+  `src/test/java/com/assessment/auditlog/controller/ComplianceReportIntegrationTest.java`,
+  `src/test/java/com/assessment/auditlog/controller/RedactionIntegrationTest.java`
+- **Commands and tests executed:** `sed -n` and `rg` review commands for
+  `AGENTS.md`, architecture/ADR/API/README documentation, security
+  configuration, configuration-property classes, exception handling, services,
+  repositories, DTOs, entities, and tests; focused
+  `./mvnw -Dtest=AuditSecurityPropertiesTest,AuditEventControllerIntegrationTest,AuditEventQueryIntegrationTest,AuditExportIntegrationTest,ComplianceReportIntegrationTest,RedactionIntegrationTest test`;
+  `./mvnw verify`; `git diff --check`; `git status --short`; `git diff
+  --stat`; guardrail searches for endpoint role alignment, tracked secret or
+  confidential file types, audit-event write/delete paths, SQL parameter
+  logging, and sensitive field exposure patterns. Follow-up after local
+  application startup failure added an environment post-processor to load
+  untracked `.env` values as fallback configuration without overriding real
+  environment variables or application/test configuration; removed the
+  short-lived Maven local profile and ephemeral-key behavior; reran focused
+  configuration tests with
+  `./mvnw -Dtest=DotenvEnvironmentPostProcessorTest,RedactionPropertiesTest,ExportPropertiesTest,AuditSecurityPropertiesTest test`;
+  reran the previously failing export-focused check with
+  `./mvnw -Dtest=DotenvEnvironmentPostProcessorTest,RedactionPropertiesTest,ExportPropertiesTest,AuditSecurityPropertiesTest,AuditExportIntegrationTest test`;
+  reran `./mvnw verify`; ran `./mvnw spring-boot:run`; reran
+  `git diff --check` and guardrail searches.
+- **Test or validation results observed:** The first focused test run failed at
+  compile time because `ApiExceptionHandler` used `org.springframework.slf4j`
+  imports instead of `org.slf4j`; corrected and reran. Focused tests then
+  passed: 52 tests, 0 failures. Full `./mvnw verify` was rerun after final
+  import cleanup and passed: 84 tests, 0 failures. `git diff --check` passed.
+  Guardrail searches found no tracked `.env`, key, certificate, PDF, target, or
+  IDE files; no `@GeneratedValue`, audit-event `JpaRepository`, audit-event
+  delete, merge, or entity-manager remove path; and documented endpoint roles
+  matched `SecurityConfig`. Follow-up focused configuration tests passed: 16
+  tests, 0 failures. One full `./mvnw verify` failed because the repository-root
+  `.env` had higher precedence than test properties and changed the export
+  signing key ID; corrected `DotenvEnvironmentPostProcessor` to run late and
+  add `.env` as a fallback source. The export-focused rerun passed: 25 tests, 0
+  failures. Final `./mvnw verify` passed: 86 tests, 0 failures. The first plain
+  `./mvnw spring-boot:run` reached database initialization but failed because a
+  stale local audit-log Java process already held port 8080; stopped that stale
+  process and reran the exact command successfully, with no active Spring
+  profile. Final `git diff --check` passed, and guardrail searches found no
+  tracked `.env`, key, certificate, PDF, target, or IDE files and no remaining
+  local-profile or ephemeral-key code references.
+- **Risks, assumptions, or limitations identified:** Whole-request payload size
+  limits are documented as production hardening rather than implemented in this
+  task. HTTP Basic is acceptable only behind TLS in production. Local
+  PostgreSQL defaults remain development-only.
+- **Accepted:**
+  - Startup validation for configured HTTP Basic users and supported roles.
+  - Centralized maximum input lengths aligned with persisted schema limits.
+  - Sensitive-path count and path-length limits.
+  - Generic ProblemDetail handling for unexpected API failures.
+  - TLS, development credential, and remaining payload-size-hardening
+    documentation.
+  - Fail-closed redaction and export crypto configuration.
+  - Repository-root `.env` loading as a local-development fallback while real
+    environment variables retain higher precedence.
+
+- **Modified:**
+  - Changed unexpected-exception logging so arbitrary exception messages and
+    stack traces are not automatically written to application logs.
+  - Removed the temporary Spring local-profile and ephemeral-key solution.
+  - Restored mandatory redaction and export signing keys for every startup.
+  - Kept `.env` only as an ignored local-development configuration source.
+  - Changed `.env` precedence after testing showed that it could otherwise
+    override integration-test configuration.
+  - Removed the redundant EnvironmentPostProcessor registration file while
+    keeping the standard `META-INF/spring.factories` registration.
+
+- **Rejected:**
+  - Adding new security frameworks, scanners, or identity infrastructure.
+  - Ephemeral crypto keys as a substitute for required configured keys.
+  - A Spring profile used only to change local cryptographic requirements.
+  - Returning detailed internal exception information to API consumers.
+  - Redesigning already validated hash-chain, retention, redaction, export, or
+    compliance behavior during final hardening.
+
+- **Rationale:**
+  - The hardening focused on concrete configuration, validation, data-exposure,
+    and authorization risks without changing the approved service design.
+    Local development remains convenient through an ignored `.env` file, while
+    deployment configuration and test configuration take precedence and crypto
+    settings remain fail-closed.
+
+- **Final validation:**
+  - Reviewed authentication, authorization, validation, cryptography,
+    sensitive-data handling, persistence, logging, configuration, errors, and
+    repository hygiene.
+  - Confirmed endpoint roles match the documented security model.
+  - Confirmed there is no application update/delete path for historical audit
+    events.
+  - Confirmed secret-bearing configuration remains outside tracked source.
+  - Confirmed no Spring local profile or ephemeral-key fallback remains.
+  - Focused configuration tests passed: 16 tests.
+  - Export/configuration focused tests passed: 25 tests.
+  - `./mvnw verify` passed: 86 tests, 0 failures.
+  - `./mvnw spring-boot:run` started successfully with no active Spring
+    profile and was stopped cleanly.

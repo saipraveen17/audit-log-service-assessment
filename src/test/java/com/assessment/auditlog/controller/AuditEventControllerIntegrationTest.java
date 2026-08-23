@@ -207,6 +207,30 @@ class AuditEventControllerIntegrationTest extends PostgreSqlIntegrationTestSuppo
     }
 
     @Test
+    void rejectsOverlongCreateFieldsWithoutEchoingPayloadValues() throws Exception {
+        String longValue = "x".repeat(256);
+
+        String response = mockMvc.perform(post("/audit/events")
+                        .with(user("writer").roles("AUDIT_WRITER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "eventType": "%s",
+                                  "actorId": "employee-101",
+                                  "resourceType": "CLIENT_ACCOUNT",
+                                  "resourceId": "account-501",
+                                  "payload": {"secret": "SHOULD_NOT_LEAK"}
+                                }
+                                """.formatted(longValue)))
+                .andExpect(status().isBadRequest())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(response).doesNotContain("SHOULD_NOT_LEAK", longValue);
+    }
+
+    @Test
     void rejectsUnsupportedRequestProperties() throws Exception {
         mockMvc.perform(post("/audit/events")
                         .with(user("writer").roles("AUDIT_WRITER"))

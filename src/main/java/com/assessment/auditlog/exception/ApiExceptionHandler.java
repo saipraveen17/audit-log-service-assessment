@@ -4,6 +4,8 @@ import java.net.URI;
 
 import jakarta.validation.ConstraintViolationException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -14,6 +16,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+
+    private static final Logger logger = LoggerFactory.getLogger(ApiExceptionHandler.class);
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     ProblemDetail handleMethodArgumentNotValid(MethodArgumentNotValidException exception) {
@@ -54,6 +58,19 @@ public class ApiExceptionHandler {
                 "Sensitive payload could not be processed.");
         problem.setType(URI.create("about:blank"));
         problem.setTitle("Sensitive payload error");
+        return problem;
+    }
+
+    @ExceptionHandler(Exception.class)
+    ProblemDetail handleUnexpected(Exception exception) {
+        logger.error(
+            "Unhandled API exception of type {}",
+            exception.getClass().getName());
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "Unexpected server error.");
+        problem.setType(URI.create("about:blank"));
+        problem.setTitle("Server error");
         return problem;
     }
 }
