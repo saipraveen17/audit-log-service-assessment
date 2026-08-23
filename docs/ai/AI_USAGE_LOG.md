@@ -1229,3 +1229,60 @@ left as pending until explicitly completed by the engineer.
   - `./mvnw verify` passed: 86 tests, 0 failures.
   - `./mvnw spring-boot:run` started successfully with no active Spring
     profile and was stopped cleanly.
+
+## 2026-08-23 - TASK-014 - Final validation and submission preparation
+
+- **AI tool used:** Codex
+- **Prompt intent:** Review the completed implementation and validation results,
+  prepare the final engineering summary and submission artifacts, and identify
+  any remaining repository or documentation issues before attestation.
+- **Important constraints supplied to the AI:** Do not introduce new features or
+  redesign validated functionality; keep final changes limited to documentation,
+  traceability, attestation, and genuine issues discovered during final
+  validation.
+- **AI proposed, generated, reviewed, or changed:** Assisted with final
+  engineering-summary content, README review, final repository-validation
+  checklist, and submission preparation.
+- **Files created or modified:** `docs/FINAL_ENGINEERING_SUMMARY.md`,
+  `docs/TASK_PLAN.md`, `docs/ai/AI_USAGE_LOG.md`, `ATTESTATION.md`
+- **Commands and tests executed:** Final commands and results are recorded after
+  completion.
+- **Test or validation results observed:** Automated suite and engineer-led
+  manual validation completed successfully before submission.
+- **Risks, assumptions, or limitations identified:** Remaining production
+  limitations are documented in `docs/FINAL_ENGINEERING_SUMMARY.md`.
+- **Accepted:**
+  - Final engineering summary covering implementation approach, design
+    decisions, validation, risks, trade-offs, and limitations.
+  - Final repository and submission checklist.
+  - Required root-level attestation.
+
+- **Modified:**
+  - Kept final documentation concise and avoided changing already validated
+    application behavior.
+
+- **Rejected:**
+  - Additional feature development after successful security and manual
+    validation.
+  - Further architectural changes that were not required for submission.
+
+- **Rationale:**
+  - The implementation had already passed automated, security, and manual
+    end-to-end validation. Final work was therefore intentionally limited to
+    accurate documentation, traceability, repository hygiene, and attestation.
+
+- **Final validation:**
+  - Ran `./mvnw verify`; all tests passed.
+  - Completed engineer-led Postman validation of authentication, event creation,
+    querying, pagination, verification, redaction, retention, export, compliance
+    reporting, and authorization.
+  - Directly modified a historical PostgreSQL record and confirmed
+    `GET /audit/verify` reported the chain as broken and identified the
+    inconsistency.
+  - Confirmed export and compliance evidence generation refused the corrupted
+    chain.
+  - Confirmed no `.env`, credentials, private keys, certificates, PDFs,
+    build output, or IDE files are tracked.
+  - Reviewed Git history and final staged diff.
+  - Confirmed `ATTESTATION.md` contains the required identifying details,
+    dates, and attestation statement.

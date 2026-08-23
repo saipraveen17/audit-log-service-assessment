@@ -10,7 +10,7 @@ audit events, tamper-evident hash-chain verification, retention, structured
 redaction, verifiable export, and client-account access compliance reporting.
 
 Security review is complete. Final manual validation and submission
-documentation remain pending.
+documentation is complete.
 
 ## Working Context
 
